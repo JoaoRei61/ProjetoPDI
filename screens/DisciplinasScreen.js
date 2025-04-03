@@ -6,7 +6,6 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import { useAuth } from "../context/AuthProvider";
 import supabase from "../supabaseconfig";
@@ -57,19 +56,17 @@ export default function DisciplinasScreen({ route, navigation }) {
     navigation.navigate("ExerciciosScreen", { disciplinaPreSelecionada: disciplina });
   };
 
+  // Agora, ao clicar em "Modo Exame", vai para a rota "Exames"
   const irParaExame = () => {
-    navigation.navigate("ExameScreen", { iddisciplina });
+    // Em vez de mandar só "iddisciplina"
+    navigation.navigate("Exames", {
+      disciplinaPreSelecionada: disciplina, 
+    });
   };
+  
 
   const irParaResumos = () => {
     navigation.navigate("Resumos", { iddisciplina });
-  };
-
-  const irParaTestes = () => {
-    // Enviamos disciplinaPreSelecionada para a tela "Testes"
-    navigation.navigate("Testes", {
-      disciplinaPreSelecionada: disciplina,
-    });
   };
 
   // Agora, ao clicar em Ranking, navegamos para "Ranking" em vez de exibir alerta
@@ -131,17 +128,6 @@ export default function DisciplinasScreen({ route, navigation }) {
               Consulte resumos e materiais de apoio para reforçar o estudo.
             </Text>
             <TouchableOpacity style={styles.cardButton} onPress={irParaResumos}>
-              <Text style={styles.cardButtonText}>Aceder</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Container Testes (importante: clica e envia disciplinaPreSelecionada) */}
-          <View style={styles.cardTestes}>
-            <Text style={styles.cardTitle}>Testes Personalizados 🎯</Text>
-            <Text style={styles.cardSubtitle}>
-              Crie testes específicos sobre esta disciplina e pratique focado.
-            </Text>
-            <TouchableOpacity style={styles.cardButton} onPress={irParaTestes}>
               <Text style={styles.cardButtonText}>Aceder</Text>
             </TouchableOpacity>
           </View>
@@ -226,20 +212,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#e3f2fd",
     borderLeftWidth: 6,
     borderLeftColor: "#1e88e5",
-    width: "100%",
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  cardTestes: {
-    backgroundColor: "#f3e5f5",
-    borderLeftWidth: 6,
-    borderLeftColor: "#8e24aa",
     width: "100%",
     padding: 20,
     borderRadius: 16,

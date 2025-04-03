@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "my--list",
-    "slug": "my--list",
+    "name": "myList",
+    "slug": "myList",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

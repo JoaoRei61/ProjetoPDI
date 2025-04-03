@@ -6,47 +6,47 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Text,
 } from "react-native";
-import { Button } from "react-native-paper";
+import { Button, Text } from "react-native-paper";
 import { useAuth } from "../context/AuthProvider";
 import Header from "../componentes/header";
+import Slider from "@react-native-community/slider";
 
-export default function ExerciciosScreen({ route, navigation }) {
+export default function exameScreen({ route, navigation }) {
   const { supabase, user, loading } = useAuth();
 
-  // Parâmetro opcional: se já recebemos uma disciplina (pré-selecionada) do ecrã anterior
+  // Se vier disciplina do param, podes usá-la diretamente
   const { disciplinaPreSelecionada } = route.params || {};
 
-  // Estados para ano, semestre e disciplina
+  // Estados básicos de ano/semestre/disciplina
   const [anoSelecionado, setAnoSelecionado] = useState(
     disciplinaPreSelecionada?.ano || null
   );
   const [semestreSelecionado, setSemestreSelecionado] = useState(
     disciplinaPreSelecionada?.semestre || null
   );
-
-  // Lista de disciplinas obtidas da tabela `curso_disciplina`
   const [disciplinas, setDisciplinas] = useState([]);
-
-  // Disciplina atualmente selecionada
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState(
     disciplinaPreSelecionada || null
   );
 
-  // Lógica de matérias
+  // Matérias
   const [materias, setMaterias] = useState([]);
   const [materiasSelecionadas, setMateriasSelecionadas] = useState([]);
 
-  // Loading e erro
+  // Controle de loading/erros
   const [loadingData, setLoadingData] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // userInfo: dados do utilizador, ex.: { idcurso, nome, etc. }
+  // Slider de perguntas
+  const [numPerguntas, setNumPerguntas] = useState(5);
+  const [maxPerguntasDisponiveis, setMaxPerguntasDisponiveis] = useState(50);
+
+  // UserInfo => { idcurso, nome, etc. }
   const [userInfo, setUserInfo] = useState(null);
 
   // ----------------------------------------------------------------------------
-  // 1) Carregar dados do utilizador (na tabela `utilizadores`) ao montar
+  // A) Validar user e buscar userInfo (idcurso) ao montar
   // ----------------------------------------------------------------------------
   useEffect(() => {
     if (!user && !loading) {
@@ -55,12 +55,16 @@ export default function ExerciciosScreen({ route, navigation }) {
       ]);
       return;
     }
-    // Se user existe, busca idcurso no 'utilizadores'
-    buscarUserInfo(user?.id);
+    if (user) {
+      buscarUserInfo(user.id);
+    } else {
+      setLoadingData(false);
+    }
   }, [user]);
 
   const buscarUserInfo = async (userId) => {
     try {
+      setLoadingData(true);
       const { data, error } = await supabase
         .from("utilizadores")
         .select("idcurso")
@@ -68,10 +72,10 @@ export default function ExerciciosScreen({ route, navigation }) {
         .single();
 
       if (error || !data) {
-        console.log("Erro ou sem dados em utilizadores:", error);
-        setErrorMessage("Não foi possível obter seu curso.");
+        console.log("Erro ao buscar userInfo:", error);
+        setErrorMessage("Não foi possível carregar o seu curso.");
       } else {
-        setUserInfo(data); // data = { idcurso: 11, ... }
+        setUserInfo(data); // ex.: { idcurso: 11 }
       }
     } catch (err) {
       console.log("Exception ao buscar userInfo:", err);
@@ -82,7 +86,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   };
 
   // ----------------------------------------------------------------------------
-  // 2) Se veio disciplinaPreSelecionada, buscar matérias dela
+  // B) Se disciplinaPreSelecionada existe, buscar matérias dela
   // ----------------------------------------------------------------------------
   useEffect(() => {
     if (disciplinaPreSelecionada) {
@@ -91,7 +95,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   }, [disciplinaPreSelecionada]);
 
   // ----------------------------------------------------------------------------
-  // 3) Buscar disciplinas via `curso_disciplina`, filtrando por ano+sem, eq("idcurso", userInfo.idcurso)
+  // C) Carregar Disciplinas via `curso_disciplina` (join c/ disciplinas)
   // ----------------------------------------------------------------------------
   const carregarDisciplinas = async (ano, semestre) => {
     if (!userInfo?.idcurso) {
@@ -100,13 +104,12 @@ export default function ExerciciosScreen({ route, navigation }) {
     }
     try {
       setLoadingData(true);
-      setErrorMessage("");
       setDisciplinaSelecionada(null);
       setMaterias([]);
       setMateriasSelecionadas([]);
+      setErrorMessage("");
 
-      // Tabela: curso_disciplina (idcurso, iddisciplina, ano, semestre)
-      // Fazemos join para obter o nome real da disciplina?
+      // Join: iddisciplina, disciplinas(iddisciplina, nome)
       const { data, error } = await supabase
         .from("curso_disciplina")
         .select(`
@@ -124,10 +127,10 @@ export default function ExerciciosScreen({ route, navigation }) {
         setDisciplinas([]);
         setErrorMessage("Sem disciplinas para este ano e semestre.");
       } else {
-        // data => ex.: [{iddisciplina: 29, disciplinas: {iddisciplina: 29, nome: 'Matemática'}}, ...]
+        // data => ex. [{ iddisciplina: 29, disciplinas: { iddisciplina: 29, nome: 'Matemática' }} ...]
         const arr = data.map((item) => ({
-          iddisciplina: item.disciplinas?.iddisciplina || 0,
-          nome: item.disciplinas?.nome || "Sem Nome",
+          iddisciplina: item?.disciplinas?.iddisciplina || 0,
+          nome: item?.disciplinas?.nome || "Sem Nome",
           ano,
           semestre,
         }));
@@ -142,7 +145,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   };
 
   // ----------------------------------------------------------------------------
-  // 4) Buscar matérias ao selecionar disciplina
+  // D) Buscar matérias
   // ----------------------------------------------------------------------------
   const fetchMaterias = async (iddisciplina) => {
     try {
@@ -151,7 +154,6 @@ export default function ExerciciosScreen({ route, navigation }) {
       setMaterias([]);
       setMateriasSelecionadas([]);
 
-      // Tabela materias: eq("iddisciplina", X)
       const { data, error } = await supabase
         .from("materia")
         .select("*")
@@ -159,22 +161,22 @@ export default function ExerciciosScreen({ route, navigation }) {
 
       if (error) {
         console.error("Erro ao buscar matérias:", error);
-        setErrorMessage("Erro ao carregar as matérias.");
+        setErrorMessage("Erro ao carregar matérias.");
       } else if (!data || data.length === 0) {
-        setErrorMessage("Não há matérias para esta disciplina.");
+        setErrorMessage("Não há matérias disponíveis para esta disciplina.");
       } else {
         setMaterias(data);
       }
     } catch (err) {
       console.error("Erro ao carregar matérias:", err);
-      setErrorMessage("Erro ao carregar as matérias.");
+      setErrorMessage("Erro inesperado ao carregar matérias.");
     } finally {
       setLoadingData(false);
     }
   };
 
   // ----------------------------------------------------------------------------
-  // 5) Seletores
+  // E) Selecionar Ano / Semestre / Disciplina
   // ----------------------------------------------------------------------------
   const selecionarAno = (ano) => {
     setAnoSelecionado(ano);
@@ -197,18 +199,53 @@ export default function ExerciciosScreen({ route, navigation }) {
     fetchMaterias(disc.iddisciplina);
   };
 
+  // ----------------------------------------------------------------------------
+  // F) Toggle Materia
+  // ----------------------------------------------------------------------------
   const toggleMateriaSelecionada = (idmateria) => {
-    let novasSelecionadas;
-    if (materiasSelecionadas.includes(idmateria)) {
-      novasSelecionadas = materiasSelecionadas.filter((id) => id !== idmateria);
+    const jaSelecionada = materiasSelecionadas.includes(idmateria);
+    if (jaSelecionada) {
+      setMateriasSelecionadas((prev) => prev.filter((id) => id !== idmateria));
     } else {
-      novasSelecionadas = [...materiasSelecionadas, idmateria];
+      setMateriasSelecionadas((prev) => [...prev, idmateria]);
     }
-    setMateriasSelecionadas(novasSelecionadas);
   };
 
   // ----------------------------------------------------------------------------
-  // 6) Iniciar Teste
+  // G) Recalcular Perguntas disponíveis ao mudar materiasSelecionadas
+  // ----------------------------------------------------------------------------
+  useEffect(() => {
+    const fetchPerguntasDisponiveis = async () => {
+      try {
+        if (materiasSelecionadas.length === 0) {
+          setMaxPerguntasDisponiveis(0);
+          if (numPerguntas > 0) setNumPerguntas(0);
+          return;
+        }
+        const { data, error } = await supabase
+          .from("perguntas")
+          .select("idpergunta")
+          .in("idmateria", materiasSelecionadas);
+
+        if (error) {
+          console.error("Erro ao verificar perguntas disponíveis:", error);
+          return;
+        }
+        const totalPerguntas = data?.length || 0;
+        setMaxPerguntasDisponiveis(totalPerguntas > 0 ? totalPerguntas : 1);
+        if (numPerguntas > totalPerguntas) {
+          setNumPerguntas(totalPerguntas);
+        }
+      } catch (e) {
+        console.error("Erro inesperado ao buscar perguntas disponíveis:", e);
+      }
+    };
+    fetchPerguntasDisponiveis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [materiasSelecionadas]);
+
+  // ----------------------------------------------------------------------------
+  // H) Iniciar Teste
   // ----------------------------------------------------------------------------
   const iniciarTeste = () => {
     if (!disciplinaSelecionada) {
@@ -220,8 +257,10 @@ export default function ExerciciosScreen({ route, navigation }) {
       return;
     }
 
-    navigation.navigate("ExerciciosPerguntasScreen", {
+    // Passamos iddisciplina e numPerguntas para a próxima tela
+    navigation.navigate("ExamesPerguntasScreen", {
       selectedMaterias: materiasSelecionadas,
+      numPerguntas: parseInt(numPerguntas, 10),
       iddisciplina: disciplinaSelecionada.iddisciplina,
     });
   };
@@ -231,7 +270,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   // ----------------------------------------------------------------------------
   if (loadingData) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={styles.containerLoading}>
         <Header />
         <ActivityIndicator size="large" color="#0056b3" style={{ marginTop: 20 }} />
       </View>
@@ -244,35 +283,26 @@ export default function ExerciciosScreen({ route, navigation }) {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>
-          Selecione o ano, semestre, disciplina e matéria para iniciar
+          Seleciona o ano, semestre, disciplina e matéria para o teste
         </Text>
 
-        {errorMessage ? (
-          <Text style={styles.errorMessage}>{errorMessage}</Text>
-        ) : null}
+        {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
 
-        {/* Se não temos disciplinaPreSelecionada => mostramos a escolha manual */}
+        {/* Se não veio disciplina preSelecionada => escolha manual de ano, sem, disc */}
         {!disciplinaPreSelecionada && (
           <>
             <Text style={styles.subtitle}>1) Escolha o Ano</Text>
-            <View style={styles.horizontalOptionsContainer}>
+            <View style={styles.anoContainer}>
               {[1, 2, 3].map((ano) => (
                 <TouchableOpacity
-                  key={`ano-${ano}`}
+                  key={ano}
                   style={[
-                    styles.optionButton,
-                    anoSelecionado === ano && styles.optionButtonSelected,
+                    styles.anoButton,
+                    anoSelecionado === ano && styles.anoSelecionado,
                   ]}
                   onPress={() => selecionarAno(ano)}
                 >
-                  <Text
-                    style={[
-                      styles.optionButtonText,
-                      anoSelecionado === ano && styles.optionButtonTextSelected,
-                    ]}
-                  >
-                    {ano}º
-                  </Text>
+                  <Text style={styles.anoTexto}>{ano}º</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -280,24 +310,17 @@ export default function ExerciciosScreen({ route, navigation }) {
             {anoSelecionado && (
               <>
                 <Text style={styles.subtitle}>2) Escolha o Semestre</Text>
-                <View style={styles.horizontalOptionsContainer}>
+                <View style={styles.semestreContainer}>
                   {[1, 2].map((sem) => (
                     <TouchableOpacity
-                      key={`sem-${sem}`}
+                      key={sem}
                       style={[
-                        styles.optionButton,
-                        semestreSelecionado === sem && styles.optionButtonSelected,
+                        styles.semestreButton,
+                        semestreSelecionado === sem && styles.semestreSelecionado,
                       ]}
                       onPress={() => selecionarSemestre(sem)}
                     >
-                      <Text
-                        style={[
-                          styles.optionButtonText,
-                          semestreSelecionado === sem && styles.optionButtonTextSelected,
-                        ]}
-                      >
-                        {sem}º Semestre
-                      </Text>
+                      <Text style={styles.semestreTexto}>{sem}º Semestre</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -309,25 +332,18 @@ export default function ExerciciosScreen({ route, navigation }) {
                 <Text style={styles.subtitle}>3) Escolha a Disciplina</Text>
                 <View style={styles.disciplinasContainer}>
                   {disciplinas.map((disc) => {
-                    const isSelected =
+                    const sel =
                       disciplinaSelecionada?.iddisciplina === disc.iddisciplina;
                     return (
                       <TouchableOpacity
-                        key={`disc-${disc.iddisciplina}`}
+                        key={disc.iddisciplina}
                         style={[
-                          styles.optionCard,
-                          isSelected && styles.optionCardSelected,
+                          styles.disciplinaButton,
+                          sel && styles.disciplinaSelecionada,
                         ]}
                         onPress={() => selecionarDisciplina(disc)}
                       >
-                        <Text
-                          style={[
-                            styles.optionCardText,
-                            isSelected && styles.optionCardTextSelected,
-                          ]}
-                        >
-                          {disc.nome}
-                        </Text>
+                        <Text style={styles.disciplinaButtonText}>{disc.nome}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -337,7 +353,7 @@ export default function ExerciciosScreen({ route, navigation }) {
           </>
         )}
 
-        {/* Se já temos uma disciplina (via param ou escolha), mostramos info */}
+        {/* Disciplina selecionada (por param ou manual) */}
         {disciplinaSelecionada && (
           <View style={styles.selectedDiscContainer}>
             <Text style={styles.selectedDiscText}>
@@ -346,34 +362,48 @@ export default function ExerciciosScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Escolher Materias */}
+        {/* Matérias */}
         {disciplinaSelecionada && (
           <>
             <Text style={styles.subtitle}>4) Escolha a(s) matéria(s)</Text>
-            {materias.map((materia) => {
-              const sel = materiasSelecionadas.includes(materia.idmateria);
+            {materias.map((mat) => {
+              const sel = materiasSelecionadas.includes(mat.idmateria);
               return (
                 <TouchableOpacity
-                  key={`mat-${materia.idmateria}`}
-                  style={[styles.materiaButton, sel && styles.materiaButtonSelected]}
-                  onPress={() => toggleMateriaSelecionada(materia.idmateria)}
+                  key={mat.idmateria}
+                  style={[styles.materiaButton, sel && styles.materiaSelecionada]}
+                  onPress={() => toggleMateriaSelecionada(mat.idmateria)}
                 >
-                  <Text
-                    style={[
-                      styles.materiaButtonText,
-                      sel && styles.materiaButtonTextSelected,
-                    ]}
-                  >
-                    {materia.nome}
+                  <Text style={[styles.materiaText, sel && styles.materiaTextSelecionada]}>
+                    {mat.nome}
                   </Text>
                 </TouchableOpacity>
               );
             })}
+
+            {materiasSelecionadas.length > 0 && (
+              <Text style={styles.disponiveisText}>
+                Perguntas disponíveis: {maxPerguntasDisponiveis}
+              </Text>
+            )}
+
+            <Text style={styles.sliderLabel}>Número de Perguntas: {numPerguntas}</Text>
+            <Slider
+              style={styles.slider}
+              minimumValue={1}
+              maximumValue={maxPerguntasDisponiveis}
+              step={1}
+              value={numPerguntas}
+              onValueChange={(value) => setNumPerguntas(value)}
+              minimumTrackTintColor="#0056b3"
+              maximumTrackTintColor="#ccc"
+              thumbTintColor="#0056b3"
+            />
           </>
         )}
       </ScrollView>
 
-      {/* Botão de Iniciar no Footer */}
+      {/* Footer com botão iniciar */}
       <View style={styles.footer}>
         <Button mode="contained" onPress={iniciarTeste} style={styles.iniciarBotao}>
           Iniciar Teste
@@ -383,14 +413,13 @@ export default function ExerciciosScreen({ route, navigation }) {
   );
 }
 
-/* ===================== ESTILOS ===================== */
 const primaryColor = "#0056b3";
 const accentColor = "#d32f2f";
 const backgroundColor = "#f4f6fa";
 const whiteColor = "#fff";
 
 const styles = StyleSheet.create({
-  loadingContainer: {
+  containerLoading: {
     flex: 1,
     backgroundColor,
     justifyContent: "center",
@@ -429,146 +458,135 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
 
-  // Botões Horizontais (Anos, Semestres)
-  horizontalOptionsContainer: {
+  anoContainer: {
     flexDirection: "row",
     justifyContent: "center",
     marginBottom: 15,
-    flexWrap: "wrap",
   },
-  optionButton: {
-    backgroundColor: "#e0e0e0",
+  anoButton: {
+    backgroundColor: "#ccc",
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginHorizontal: 6,
-    marginVertical: 6,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2.5,
+    padding: 10,
+    marginHorizontal: 10,
   },
-  optionButtonSelected: {
+  anoSelecionado: {
     backgroundColor: primaryColor,
   },
-  optionButtonText: {
+  anoTexto: {
     fontSize: 16,
-    color: "#333",
-    fontWeight: "600",
-  },
-  optionButtonTextSelected: {
-    color: whiteColor,
+    color: "#fff",
+    fontWeight: "bold",
   },
 
-  // Disciplinas (cards)
+  semestreContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+  semestreButton: {
+    backgroundColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginHorizontal: 10,
+  },
+  semestreSelecionado: {
+    backgroundColor: primaryColor,
+  },
+  semestreTexto: {
+    fontSize: 16,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+
   disciplinasContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
     marginBottom: 15,
   },
-  optionCard: {
-    width: "45%",
+  disciplinaButton: {
     backgroundColor: whiteColor,
-    borderRadius: 8,
-    padding: 15,
-    margin: 5,
-    borderWidth: 2,
     borderColor: primaryColor,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderWidth: 2,
+    borderRadius: 8,
+    padding: 10,
+    margin: 5,
   },
-  optionCardSelected: {
+  disciplinaSelecionada: {
     borderColor: accentColor,
   },
-  optionCardText: {
+  disciplinaButtonText: {
     color: primaryColor,
     fontWeight: "bold",
     fontSize: 15,
-    textAlign: "center",
-  },
-  optionCardTextSelected: {
-    color: accentColor,
   },
 
-  // Disciplina Selecionada
   selectedDiscContainer: {
-    backgroundColor: "#dbe9ff",
+    backgroundColor: whiteColor,
     padding: 10,
     borderRadius: 8,
     marginVertical: 10,
-    width: "100%",
     borderWidth: 1,
-    borderColor: "#c8dffc",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1.5 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
+    borderColor: accentColor,
   },
   selectedDiscText: {
     fontSize: 16,
-    color: "#333",
-    fontWeight: "500",
-    textAlign: "center",
+    color: accentColor,
+    fontWeight: "600",
   },
 
-  // Matérias
   materiaButton: {
     width: "100%",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
+    padding: 15,
     borderWidth: 2,
     borderColor: primaryColor,
     borderRadius: 8,
-    marginBottom: 10,
-    backgroundColor: whiteColor,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1.5 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
+    marginBottom: 15,
+    alignItems: "center",
+    backgroundColor: primaryColor,
   },
-  materiaButtonSelected: {
+  materiaSelecionada: {
     backgroundColor: primaryColor,
     borderColor: accentColor,
   },
-  materiaButtonText: {
+  materiaText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: primaryColor,
-    textAlign: "center",
+    color: whiteColor,
   },
-  materiaButtonTextSelected: {
+  materiaTextSelecionada: {
     color: whiteColor,
   },
 
-  // Footer
+  disponiveisText: {
+    fontSize: 14,
+    color: "#333",
+    marginVertical: 10,
+    textAlign: "center",
+  },
+  sliderLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: primaryColor,
+    marginTop: 20,
+    textAlign: "center",
+  },
+  slider: {
+    width: "90%",
+    marginVertical: 20,
+  },
+
   footer: {
-    paddingVertical: 15,
+    padding: 20,
     backgroundColor: whiteColor,
     borderTopWidth: 1,
     borderTopColor: "#ddd",
     alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
   },
   iniciarBotao: {
     backgroundColor: primaryColor,
     padding: 10,
     borderRadius: 8,
     width: "90%",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
 });

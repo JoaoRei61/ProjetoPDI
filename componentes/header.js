@@ -1,33 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Image, Text, TouchableOpacity } from 'react-native';
 import { Appbar, Avatar, Menu, Divider, Button, Drawer } from 'react-native-paper';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthProvider';
 import { Ionicons } from '@expo/vector-icons';
 
 const Header = () => {
-  const { user, logout, supabase } = useAuth();
+  const { user, supabase } = useAuth();
   const navigation = useNavigation();
+  
+  // Controla o estado do menu e drawer
   const [menuVisible, setMenuVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
+
+  // Estados para dados de utilizador (sem metadata)
+  const [nome, setNome] = useState('Carregando...');
+  const [apelido, setApelido] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [idCurso, setIdCurso] = useState('');
+  const [tipoConta, setTipoConta] = useState('');
   const [nomeCurso, setNomeCurso] = useState('Carregando...');
 
+  // 1) Buscar dados do utilizador
   useEffect(() => {
-    const fetchCursoNome = async () => {
-      if (user?.user_metadata?.idcurso) {
-        const { data } = await supabase
-          .from('cursos')
-          .select('nome')
-          .eq('idcurso', user.user_metadata.idcurso)
-          .single();
+    const fetchUtilizador = async () => {
+      if (user) {
+        console.log('Buscando utilizador para ID:', user.id);
+        const { data, error } = await supabase
+          .from('utilizadores')
+          .select('nome, apelido, telefone, idcurso, tipo_conta')
+          .eq('id', user.id)
+          .maybeSingle();
 
-        if (data) setNomeCurso(data.nome);
+        if (error) {
+          console.error('Erro ao buscar utilizador:', error);
+        }
+        if (!data) {
+          console.log('Nenhum utilizador encontrado para esse ID:', user.id);
+        } else {
+          console.log('Dados do utilizador:', data);
+          setNome(data.nome);
+          setApelido(data.apelido);
+          setTelefone(data.telefone);
+          setIdCurso(data.idcurso);
+          setTipoConta(data.tipo_conta);
+        }
       }
     };
-
-    fetchCursoNome();
+    fetchUtilizador();
   }, [user, supabase]);
 
+  // 2) Buscar nome do curso, dado o idCurso
+  useEffect(() => {
+    const fetchCursoNome = async () => {
+      if (idCurso) {
+        console.log('Buscando nome do curso para idCurso:', idCurso);
+        const { data, error } = await supabase
+          .from('curso')
+          .select('nome')
+          // Se a PK em 'cursos' for "id", troque para: .eq('id', idCurso)
+          .eq('idcurso', idCurso)
+          .maybeSingle();
+
+        if (error) {
+          console.log('Erro ao buscar curso:', error);
+        }
+        if (!data) {
+          console.log('Nenhum curso encontrado com idCurso:', idCurso);
+          setNomeCurso('Desconhecido');
+        } else {
+          console.log('Curso encontrado:', data);
+          setNomeCurso(data.nome);
+        }
+      }
+    };
+    fetchCursoNome();
+  }, [idCurso, supabase]);
+
+  // Ações do menu e drawer
   const toggleMenu = () => setMenuVisible(!menuVisible);
   const toggleDrawer = () => setDrawerVisible(!drawerVisible);
 
@@ -35,10 +85,7 @@ const Header = () => {
     try {
       setMenuVisible(false);
       await supabase.auth.signOut();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
+      navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
@@ -47,14 +94,17 @@ const Header = () => {
   return (
     <>
       <Appbar.Header style={styles.header}>
+        {/* Botão lateral esquerdo que abre o Drawer */}
         <TouchableOpacity onPress={toggleDrawer}>
           <Ionicons name="menu" size={28} color="#fff" style={{ marginLeft: 10 }} />
         </TouchableOpacity>
 
+        {/* Logo no centro */}
         <View style={styles.logoContainer}>
           <Image source={require('../assets/logo.jpeg')} style={styles.logo} />
         </View>
 
+        {/* Avatar que mostra o menu do utilizador */}
         <Menu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
@@ -62,16 +112,17 @@ const Header = () => {
             <TouchableOpacity onPress={toggleMenu} style={{ marginRight: 10 }}>
               <Avatar.Text
                 size={40}
-                label={user?.user_metadata?.nome ? user.user_metadata.nome[0].toUpperCase() : 'U'}
+                label={nome ? nome[0].toUpperCase() : 'U'}
                 style={styles.avatar}
               />
             </TouchableOpacity>
           }
         >
+          {/* Dados do utilizador */}
           <View style={styles.userInfoContainer}>
             <View style={styles.infoButton}>
               <Text style={styles.label}>Nome:</Text>
-              <Text>{user?.user_metadata?.nome || 'N/A'}</Text>
+              <Text>{nome} {apelido}</Text>
             </View>
             <View style={styles.infoButton}>
               <Text style={styles.label}>Email:</Text>
@@ -79,20 +130,30 @@ const Header = () => {
             </View>
             <View style={styles.infoButton}>
               <Text style={styles.label}>Telefone:</Text>
-              <Text>{user?.user_metadata?.telefone || 'Sem telefone'}</Text>
+              <Text>{telefone || 'Sem telefone'}</Text>
             </View>
             <View style={styles.infoButton}>
               <Text style={styles.label}>Curso:</Text>
               <Text>{nomeCurso}</Text>
             </View>
+            <View style={styles.infoButton}>
+              <Text style={styles.label}>Tipo:</Text>
+              <Text>{tipoConta || 'N/A'}</Text>
+            </View>
           </View>
 
           <Divider />
 
-          <Button mode="contained" style={styles.manageAccountButton} onPress={() => {
+          <Button
+            mode="contained"
+            style={styles.manageAccountButton}
+            onPress={() => {
               setMenuVisible(false);
               navigation.navigate('GerirConta'); 
-            }}>Gerir Conta</Button>
+            }}
+          >
+            Gerir Conta
+          </Button>
             
           <Button
             mode="contained"
@@ -105,12 +166,17 @@ const Header = () => {
             Minhas Conquistas
           </Button>
 
-          <Button mode="contained" onPress={handleLogout} style={styles.logoutButton}>
+          <Button
+            mode="contained"
+            onPress={handleLogout}
+            style={styles.logoutButton}
+          >
             Sair
           </Button>
         </Menu>
       </Appbar.Header>
 
+      {/* Drawer lateral */}
       {drawerVisible && (
         <View style={styles.drawerContainer}>
           <TouchableOpacity onPress={toggleDrawer} style={styles.drawerToggle}>
@@ -132,19 +198,13 @@ const Header = () => {
             <Drawer.Item 
               icon="pencil" 
               label="Modo Exame" 
-              onPress={() => navigation.navigate('ExameScreen')} 
+              onPress={() => navigation.navigate('Exames')} 
               style={styles.drawerItem} 
             />
             <Drawer.Item 
               icon="file-document-outline" 
               label="Resumos" 
-              onPress={() => navigation.navigate('ResumosScreen')} 
-              style={styles.drawerItem} 
-            />
-            <Drawer.Item 
-              icon="check-circle-outline" 
-              label="Testes Personalizados" 
-              onPress={() => navigation.navigate('Testes')} 
+              onPress={() => navigation.navigate('Resumos')} 
               style={styles.drawerItem} 
             />
           </Drawer.Section>

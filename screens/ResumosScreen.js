@@ -11,7 +11,6 @@ import {
 import { useAuth } from "../context/AuthProvider";
 import Header from "../componentes/header";
 
-// Ajuste se for "resumos" em minúsculo
 const TABELA_RESUMOS = "Resumos";
 
 export default function ResumosScreen({ route, navigation }) {
@@ -20,18 +19,23 @@ export default function ResumosScreen({ route, navigation }) {
   // Caso venha "iddisciplina" via params
   const { iddisciplina } = route.params || {};
 
-  // States para ano/semestre e disciplina
+  // Estados para ano/sem e disciplina
   const [anoSelecionado, setAnoSelecionado] = useState(null);
   const [semestreSelecionado, setSemestreSelecionado] = useState(null);
   const [disciplinas, setDisciplinas] = useState([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState(null);
 
+  // Lista de resumos
   const [resumos, setResumos] = useState([]);
 
+  // Loading/erro
   const [loadingData, setLoadingData] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // ================== Efeito inicial: validação do user ==================
+  // userInfo => { idcurso, ... }
+  const [userInfo, setUserInfo] = useState(null);
+
+  // ================== A) Validar user + buscar userInfo ==================
   useEffect(() => {
     if (!user && !loading) {
       Alert.alert("Sessão Expirada", "Por favor, faça login novamente.", [
@@ -39,10 +43,37 @@ export default function ResumosScreen({ route, navigation }) {
       ]);
       return;
     }
-    setLoadingData(false);
+    if (user) {
+      buscarUserInfo(user.id);
+    } else {
+      setLoadingData(false);
+    }
   }, [user]);
 
-  // ================== Se veio iddisciplina, buscamos direto ==================
+  const buscarUserInfo = async (userId) => {
+    try {
+      setLoadingData(true);
+      const { data, error } = await supabase
+        .from("utilizadores")
+        .select("idcurso")
+        .eq("id", userId)
+        .single();
+
+      if (error || !data) {
+        console.log("Erro ao buscar userInfo:", error);
+        setErrorMessage("Não foi possível carregar o seu curso.");
+      } else {
+        setUserInfo(data); // { idcurso: 11, ... }
+      }
+    } catch (err) {
+      console.log("Exception ao buscar userInfo:", err);
+      setErrorMessage("Erro ao buscar dados do utilizador.");
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  // ================== B) Se veio iddisciplina, buscar disciplina e resumos ==================
   useEffect(() => {
     if (iddisciplina) {
       buscarDisciplinaESelecionar(iddisciplina);
@@ -59,15 +90,10 @@ export default function ResumosScreen({ route, navigation }) {
         .single();
 
       if (error) {
-        console.error("Erro ao buscar disciplina por id:", error);
+        console.error("Erro ao buscar disciplina:", error);
         setErrorMessage("Erro ao carregar disciplina recebida por parâmetro.");
       } else if (data) {
         setDisciplinaSelecionada(data);
-        // Opcionalmente, se quiser armazenar o ano/semestre da disciplina
-        // setAnoSelecionado(data.ano);
-        // setSemestreSelecionado(data.semestre);
-
-        // Carrega resumos automaticamente
         carregarResumos(data.iddisciplina);
       }
     } catch (err) {
@@ -78,25 +104,31 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== Carrega Disciplinas manualmente ==================
+  // ================== C) Carregar Disciplinas via curso_disciplina (join c/ disciplinas) ==================
   const carregarDisciplinas = async (ano, semestre) => {
+    if (!userInfo?.idcurso) {
+      setErrorMessage("Não foi possível identificar o curso do utilizador.");
+      return;
+    }
     try {
       setLoadingData(true);
       setDisciplinaSelecionada(null);
       setResumos([]);
       setErrorMessage("");
 
-      const idcurso = user?.user_metadata?.idcurso;
-      if (!idcurso) {
-        setErrorMessage("Não foi possível identificar o curso do utilizador.");
-        setLoadingData(false);
-        return;
-      }
-
+      // Buscamos colunas:
+      // - iddisciplina
+      // - disciplinas(*)
       const { data, error } = await supabase
-        .from("disciplinas")
-        .select("*")
-        .eq("idcurso", idcurso)
+        .from("curso_disciplina")
+        .select(`
+          iddisciplina,
+          disciplinas (
+            iddisciplina,
+            nome
+          )
+        `)
+        .eq("idcurso", userInfo.idcurso)
         .eq("ano", ano)
         .eq("semestre", semestre);
 
@@ -104,10 +136,17 @@ export default function ResumosScreen({ route, navigation }) {
         console.error("Erro ao buscar disciplinas:", error);
         setErrorMessage("Erro ao carregar disciplinas.");
       } else if (!data || data.length === 0) {
-        setErrorMessage("Sem disciplinas para este ano e semestre.");
         setDisciplinas([]);
+        setErrorMessage("Sem disciplinas para este ano e semestre.");
       } else {
-        setDisciplinas(data);
+        // data => [{ iddisciplina: 123, disciplinas: { iddisciplina, nome }}...]
+        const arr = data.map((item) => ({
+          iddisciplina: item.disciplinas?.iddisciplina || 0,
+          nome: item.disciplinas?.nome || "Sem Nome",
+          ano,
+          semestre,
+        }));
+        setDisciplinas(arr);
       }
     } catch (err) {
       console.error("Erro ao carregar disciplinas:", err);
@@ -117,7 +156,7 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== Carrega Resumos ==================
+  // ================== D) Carregar Resumos ==================
   const carregarResumos = async (idd) => {
     try {
       setLoadingData(true);
@@ -141,36 +180,34 @@ export default function ResumosScreen({ route, navigation }) {
         return;
       }
 
-      // Para cada resumo, buscar user em auth.users
+      // Carregar autor de cada resumo (se user_id for preciso)
       const resumosComAutor = [];
-      await Promise.all(
-        resumosData.map(async (resumo) => {
-          let autorNome = "Desconhecido";
-          let autorTipo = "desconhecido";
+      for (const resumo of resumosData) {
+        let autorNome = "Desconhecido";
+        let autorTipo = "desconhecido";
 
-          if (resumo.user_id) {
-            const { data: userData, error: userError } = await supabase
-              .from("auth.users")
-              .select("id, user_metadata")
-              .eq("id", resumo.user_id)
-              .single();
+        if (resumo.user_id) {
+          const { data: userData, error: userError } = await supabase
+            .from("utilizadores")
+            .select("nome, tipo_conta")
+            .eq("id", resumo.user_id)
+            .single();
 
-            if (!userError && userData) {
-              autorNome = userData.user_metadata?.nome || "Sem nome";
-              const t = userData.user_metadata?.tipo_conta;
-              if (t === "professor") autorTipo = "docente";
-              else if (t === "aluno") autorTipo = "aluno";
-              else autorTipo = t || "desconhecido";
-            }
+          if (!userError && userData) {
+            autorNome = userData.nome || "Sem nome";
+            const t = userData.tipo_conta;
+            if (t === "professor") autorTipo = "docente";
+            else if (t === "aluno") autorTipo = "aluno";
+            else autorTipo = t || "desconhecido";
           }
+        }
 
-          resumosComAutor.push({
-            ...resumo,
-            autorNome,
-            autorTipo,
-          });
-        })
-      );
+        resumosComAutor.push({
+          ...resumo,
+          autorNome,
+          autorTipo,
+        });
+      }
 
       setResumos(resumosComAutor);
     } catch (err) {
@@ -181,7 +218,7 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== Handlers ==================
+  // ================== E) Selecionar Ano / Semestre / Disciplina ==================
   const selecionarAno = (ano) => {
     setAnoSelecionado(ano);
     setSemestreSelecionado(null);
@@ -203,6 +240,15 @@ export default function ResumosScreen({ route, navigation }) {
   };
 
   // ================== Render ==================
+  if (loadingData) {
+    return (
+      <View style={styles.containerLoading}>
+        <Header />
+        <ActivityIndicator size="large" color="#0056b3" style={{ marginTop: 20 }} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Header />
@@ -212,25 +258,16 @@ export default function ResumosScreen({ route, navigation }) {
           Selecione o ano, semestre e disciplina para ver os Resumos
         </Text>
 
-        {loadingData && (
-          <ActivityIndicator
-            animating={true}
-            size="large"
-            color="#0056b3"
-            style={styles.loader}
-          />
-        )}
         {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
 
-        {/* Caso não tenha disciplinaSelecionada e não tenha iddisciplina, mostramos a escolha manual */}
+        {/* Escolha manual se não veio iddisciplina (ou não selecionou) */}
         {!disciplinaSelecionada && !iddisciplina && (
           <>
-            {/* Passo 1: Ano */}
             <Text style={styles.subtitle}>1) Escolha o Ano</Text>
             <View style={styles.anoContainer}>
               {[1, 2, 3].map((ano) => (
                 <TouchableOpacity
-                  key={`ano-${ano}`} // chave única
+                  key={ano}
                   style={[
                     styles.anoButton,
                     anoSelecionado === ano && styles.anoSelecionado,
@@ -242,14 +279,13 @@ export default function ResumosScreen({ route, navigation }) {
               ))}
             </View>
 
-            {/* Passo 2: Semestre */}
             {anoSelecionado && (
               <>
                 <Text style={styles.subtitle}>2) Escolha o Semestre</Text>
                 <View style={styles.semestreContainer}>
                   {[1, 2].map((sem) => (
                     <TouchableOpacity
-                      key={`sem-${sem}`} // chave única
+                      key={sem}
                       style={[
                         styles.semestreButton,
                         semestreSelecionado === sem && styles.semestreSelecionado,
@@ -263,16 +299,16 @@ export default function ResumosScreen({ route, navigation }) {
               </>
             )}
 
-            {/* Passo 3: Disciplina */}
             {semestreSelecionado && (
               <>
                 <Text style={styles.subtitle}>3) Escolha a Disciplina</Text>
                 <View style={styles.disciplinasContainer}>
                   {disciplinas.map((disc) => {
-                    const sel = disciplinaSelecionada?.iddisciplina === disc.iddisciplina;
+                    const sel =
+                      disciplinaSelecionada?.iddisciplina === disc.iddisciplina;
                     return (
                       <TouchableOpacity
-                        key={`disc-${disc.iddisciplina}`} // chave única
+                        key={disc.iddisciplina}
                         style={[
                           styles.disciplinaButton,
                           sel && styles.disciplinaSelecionada,
@@ -289,7 +325,7 @@ export default function ResumosScreen({ route, navigation }) {
           </>
         )}
 
-        {/* Mostra a disciplina selecionada (se houver) */}
+        {/* Mostrar disciplina selecionada */}
         {disciplinaSelecionada && (
           <View style={styles.selectedDiscContainer}>
             <Text style={styles.selectedDiscText}>
@@ -304,11 +340,11 @@ export default function ResumosScreen({ route, navigation }) {
             <Text style={styles.subtitle}>Resumos Disponíveis</Text>
             {resumos.map((res) => (
               <TouchableOpacity
-                key={`resumo-${res.idresumo}`} // chave única
+                key={res.idresumo}
                 style={styles.resumoCard}
                 onPress={() => {
                   navigation.navigate("PDFViewerScreen", {
-                    pdfUrl: res.materia, // link PDF
+                    pdfUrl: res.materia, // link do PDF
                   });
                 }}
               >
@@ -321,7 +357,7 @@ export default function ResumosScreen({ route, navigation }) {
               </TouchableOpacity>
             ))}
 
-            {!loadingData && !errorMessage && resumos.length === 0 && (
+            {resumos.length === 0 && (
               <Text style={styles.noResumosText}>
                 Nenhum resumo encontrado para esta disciplina.
               </Text>
@@ -334,7 +370,16 @@ export default function ResumosScreen({ route, navigation }) {
 }
 
 // ================== STYLES ==================
+const primaryColor = "#0056b3";
+const accentColor = "#d32f2f";
+
 const styles = StyleSheet.create({
+  containerLoading: {
+    flex: 1,
+    backgroundColor: "#f7f7f7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f7f7f7",
@@ -343,21 +388,18 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
   },
-  loader: {
-    marginTop: 20,
-  },
-  errorMessage: {
-    color: "red",
-    fontSize: 16,
-    textAlign: "center",
-    marginVertical: 10,
-  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "rgb(0, 0, 0)",
+    color: "#000",
     marginBottom: 20,
     textAlign: "center",
+  },
+  errorMessage: {
+    color: "#d32f2f",
+    fontSize: 16,
+    textAlign: "center",
+    marginVertical: 10,
   },
   subtitle: {
     fontSize: 18,
@@ -368,6 +410,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
     marginLeft: 15,
   },
+
   anoContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -380,13 +423,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   anoSelecionado: {
-    backgroundColor: "#0056b3",
+    backgroundColor: primaryColor,
   },
   anoTexto: {
     fontSize: 16,
     color: "#fff",
     fontWeight: "bold",
   },
+
   semestreContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -399,13 +443,14 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   semestreSelecionado: {
-    backgroundColor: "#0056b3",
+    backgroundColor: primaryColor,
   },
   semestreTexto: {
     fontSize: 16,
     color: "#fff",
     fontWeight: "bold",
   },
+
   disciplinasContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -414,20 +459,21 @@ const styles = StyleSheet.create({
   },
   disciplinaButton: {
     backgroundColor: "#fff",
-    borderColor: "#0056b3",
+    borderColor: primaryColor,
     borderWidth: 2,
     borderRadius: 8,
     padding: 10,
     margin: 5,
   },
   disciplinaSelecionada: {
-    borderColor: "#d32f2f",
+    borderColor: accentColor,
   },
   disciplinaButtonText: {
-    color: "#0056b3",
+    color: primaryColor,
     fontWeight: "bold",
     fontSize: 15,
   },
+
   selectedDiscContainer: {
     backgroundColor: "rgb(157, 243, 243)",
     padding: 10,
@@ -441,6 +487,7 @@ const styles = StyleSheet.create({
     color: "rgb(3, 66, 255)",
     fontWeight: "600",
   },
+
   resumoCard: {
     backgroundColor: "rgb(134, 245, 184)",
     borderRadius: 40,
@@ -471,7 +518,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
   noResumosText: {
-    color: "rgb(0, 0, 0)",
+    color: "#000",
     fontSize: 16,
     textAlign: "center",
     marginTop: 20,
