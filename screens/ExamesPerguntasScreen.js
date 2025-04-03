@@ -27,11 +27,15 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [respostasSelecionadas, setRespostasSelecionadas] = useState({});
   const [quizFinalizado, setQuizFinalizado] = useState(false);
+
+  // Exibição de resultado
   const [resultado, setResultado] = useState(null);
   const [mensagemResultado, setMensagemResultado] = useState("");
+  const [pontos, setPontos] = useState(null);
+
+  // Controle da pergunta atual
   const [perguntaAtual, setPerguntaAtual] = useState(0);
   const [mostrarVisualizacao, setMostrarVisualizacao] = useState(false);
-  const [naoResponderSelecionado, setNaoResponderSelecionado] = useState({});
 
   // Animação de fade
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -94,18 +98,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     }));
   };
 
-  const handleNaoPretendoResponder = (idpergunta) => {
-    if (quizFinalizado) return;
-    setNaoResponderSelecionado((prev) => ({
-      ...prev,
-      [idpergunta]: true,
-    }));
-    setRespostasSelecionadas((prev) => ({
-      ...prev,
-      [idpergunta]: "nao_responder",
-    }));
-  };
-
+  // Passar para a próxima pergunta
   const avancarPergunta = () => {
     if (perguntaAtual < perguntas.length - 1) {
       setPerguntaAtual(perguntaAtual + 1);
@@ -128,9 +121,18 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
       }
     });
 
+    // Porcentagem de acerto
     const porcentagem = ((respostasCorretas / perguntas.length) * 100).toFixed(2);
     setQuizFinalizado(true);
     setResultado(porcentagem);
+
+    // Cálculo da pontuação pela fórmula:
+    //     pontuacao = (acertos / resolvidos) * (acertos + resolvidos)
+    const acertos = respostasCorretas;
+    const resolvidos = perguntas.length;
+    const pontuacaoFormula = (acertos / resolvidos) * (acertos + resolvidos);
+    setPontos(pontuacaoFormula.toFixed(2));
+
     definirMensagemResultado(porcentagem);
 
     // Animação de fade
@@ -140,11 +142,10 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
       useNativeDriver: true,
     }).start();
 
+    // 3.1) Inserir pontuação no supabase
     try {
-      // Converte iddisciplina se for int/smallint
       const numericIdDisc = iddisciplina ? parseInt(iddisciplina, 10) : null;
 
-      // 3.1) INSERIR PONTUAÇÃO
       const { data: pontuacaoInserida, error: quizErro } = await supabase
         .from("pontuacoes")
         .insert([
@@ -156,7 +157,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
           },
         ])
         .select()
-        .single(); // Retorna o registo criado
+        .single();
 
       if (quizErro) {
         console.error("Erro ao inserir pontuação:", quizErro);
@@ -166,13 +167,9 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         console.log("Não foi possível criar pontuação, dado nulo.");
         return;
       }
-
-      // Aqui assumimos que a PK da tabela "pontuacoes" chama-se "idpontuacao"
-      // Ajuste o nome se sua PK for "id", "idquiz" ou outro
       const idpontuacao = pontuacaoInserida.idpontuacao;
 
-      // 3.2) INSERIR perguntas usadas no teste em "perguntas_pontuacao"
-      // Cria uma linha para cada pergunta: (idpontuacao, idpergunta)
+      // 3.2) Inserir perguntas usadas no teste em "perguntas_pontuacao"
       const listaPerguntasPontuacao = perguntas.map((pergunta) => ({
         idpontuacao,
         idpergunta: pergunta.idpergunta,
@@ -190,6 +187,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     }
   };
 
+  // Define mensagem com base na % de acerto
   const definirMensagemResultado = (nota) => {
     const notaNum = parseFloat(nota);
     if (notaNum >= 90) {
@@ -207,12 +205,14 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     setMostrarVisualizacao(true);
   };
 
+  // Verifica se respondeu corretamente a pergunta
   const respondida_corretamentePergunta = (pergunta) => {
     const respostaSelecionada = respostasSelecionadas[pergunta.idpergunta];
     const alternativaCorreta = pergunta.alternativas.find((alt) => alt.correta);
     return respostaSelecionada === alternativaCorreta?.idalternativa;
   };
 
+  // Renderização do teste completo (tela final)
   const renderTesteCompleto = () => {
     return (
       <ScrollView contentContainerStyle={styles.scrollContainerFinal}>
@@ -221,7 +221,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         {perguntas.map((pergunta, index) => {
           const acertou = respondida_corretamentePergunta(pergunta);
           const respostaSelecionada = respostasSelecionadas[pergunta.idpergunta];
-          const naoRespondeu = respostaSelecionada === "nao_responder";
 
           return (
             <View key={`pergunta-${pergunta.idpergunta}`} style={styles.finalPerguntaContainer}>
@@ -235,11 +234,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                 let estilo = [styles.alternativaButtonFinal];
 
                 if (selecionada) {
-                  if (acertou) {
-                    estilo.push(styles.certaButton);
-                  } else {
-                    estilo.push(styles.erradaButton);
-                  }
+                  estilo.push(acertou ? styles.certaButton : styles.erradaButton);
                 }
 
                 return (
@@ -249,16 +244,14 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                 );
               })}
 
-              <View style={styles.finalExplicacaoContainer}>
-                {naoRespondeu && (
-                  <Text style={styles.explicacaoTextoFinal}>Você não respondeu a questão.</Text>
-                )}
-                {!acertou && !naoRespondeu && pergunta.explicacao && (
+              {/* Se errou e há explicação, exibe abaixo */}
+              {!acertou && pergunta.explicacao && respostaSelecionada && (
+                <View style={styles.finalExplicacaoContainer}>
                   <Text style={styles.explicacaoTextoFinal}>
                     Explicação: {pergunta.explicacao}
                   </Text>
-                )}
-              </View>
+                </View>
+              )}
             </View>
           );
         })}
@@ -314,17 +307,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                     ))}
                   </View>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.naoResponderButton,
-                      naoResponderSelecionado[perguntas[perguntaAtual]?.idpergunta] &&
-                        styles.selectedNaoResponder,
-                    ]}
-                    onPress={() => handleNaoPretendoResponder(perguntas[perguntaAtual]?.idpergunta)}
-                  >
-                    <Text style={styles.naoResponderText}>❌ Não pretendo responder</Text>
-                  </TouchableOpacity>
-
                   <TouchableOpacity style={styles.nextButton} onPress={avancarPergunta}>
                     <Text style={styles.nextButtonText}>
                       {perguntaAtual === perguntas.length - 1
@@ -337,7 +319,12 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                 <>
                   <Text style={styles.title}>Quiz Finalizado</Text>
                   <Text style={styles.resultadoTexto}>{mensagemResultado}</Text>
-                  <Text style={styles.resultadoPontuacao}>🎯 Você fez {resultado}%!</Text>
+                  <Text style={styles.resultadoPontuacao}>Resultado: {resultado}%</Text>
+                  {pontos !== null && (
+                    <Text style={styles.pontosText}>
+                      Você ganhou {pontos} pontos!
+                    </Text>
+                  )}
 
                   <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
                     <Text style={styles.closeButtonText}>🔙 Voltar</Text>
@@ -413,24 +400,6 @@ const styles = StyleSheet.create({
     borderColor: "#0000FF",
     borderWidth: 2,
   },
-  naoResponderButton: {
-    width: "90%",
-    paddingVertical: 20,
-    backgroundColor: "#FF3D00",
-    marginVertical: 8,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 3,
-    alignSelf: "center",
-  },
-  selectedNaoResponder: { backgroundColor: "#FF6347" },
-  naoResponderText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#FFF",
-    textAlign: "center",
-  },
   nextButton: {
     width: "90%",
     paddingVertical: 20,
@@ -455,11 +424,18 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   resultadoPontuacao: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
     color: "#FF4500",
     textAlign: "center",
+    marginBottom: 10,
+  },
+  pontosText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
     marginBottom: 20,
+    color: "#333",
   },
   closeButton: {
     backgroundColor: "#007AFF",

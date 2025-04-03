@@ -26,7 +26,7 @@ const CriarContaScreen = ({ navigation }) => {
   useEffect(() => {
     const fetchCursos = async () => {
       const { data, error } = await supabase
-        .from('cursos')
+        .from('curso')
         .select('*');
       if (!error) setCursos(data);
     };

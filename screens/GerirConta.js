@@ -78,7 +78,7 @@ export default function GerirContaScreen() {
   // Busca lista de cursos no Supabase
   const fetchCourses = async () => {
     try {
-      const { data, error } = await supabase.from("cursos").select("idcurso, nome");
+      const { data, error } = await supabase.from("curso").select("idcurso, nome");
       if (error) {
         console.error("Erro ao buscar cursos:", error);
       } else {
