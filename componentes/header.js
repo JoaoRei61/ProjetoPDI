@@ -25,20 +25,13 @@ const Header = () => {
   useEffect(() => {
     const fetchUtilizador = async () => {
       if (user) {
-        console.log('Buscando utilizador para ID:', user.id);
         const { data, error } = await supabase
           .from('utilizadores')
           .select('nome, apelido, telefone, idcurso, tipo_conta')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (error) {
-          console.error('Erro ao buscar utilizador:', error);
-        }
-        if (!data) {
-          console.log('Nenhum utilizador encontrado para esse ID:', user.id);
-        } else {
-          console.log('Dados do utilizador:', data);
+        if (!error && data) {
           setNome(data.nome);
           setApelido(data.apelido);
           setTelefone(data.telefone);
@@ -54,23 +47,17 @@ const Header = () => {
   useEffect(() => {
     const fetchCursoNome = async () => {
       if (idCurso) {
-        console.log('Buscando nome do curso para idCurso:', idCurso);
         const { data, error } = await supabase
           .from('curso')
           .select('nome')
-          // Se a PK em 'cursos' for "id", troque para: .eq('id', idCurso)
+          // Se a PK em 'curso' for "id", troque para eq('id', idCurso)
           .eq('idcurso', idCurso)
           .maybeSingle();
 
-        if (error) {
-          console.log('Erro ao buscar curso:', error);
-        }
-        if (!data) {
-          console.log('Nenhum curso encontrado com idCurso:', idCurso);
-          setNomeCurso('Desconhecido');
-        } else {
-          console.log('Curso encontrado:', data);
+        if (!error && data) {
           setNomeCurso(data.nome);
+        } else {
+          setNomeCurso('Desconhecido');
         }
       }
     };
@@ -166,6 +153,19 @@ const Header = () => {
             Minhas Conquistas
           </Button>
 
+          {/* ====== NOVO BOTÃO: RANKING GLOBAL ====== */}
+          <Button
+            mode="contained"
+            style={styles.rankingGlobalButton}
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('Ranking'); // Rota da tela RankingScreen
+            }}
+          >
+            Ranking Global
+          </Button>
+          {/* ======================================== */}
+
           <Button
             mode="contained"
             onPress={handleLogout}
@@ -259,6 +259,11 @@ const styles = StyleSheet.create({
   achievementsButton: {
     margin: 10,
     backgroundColor: '#007BFF',
+    borderRadius: 5,
+  },
+  rankingGlobalButton: {
+    margin: 10,
+    backgroundColor: '#8e44ad',
     borderRadius: 5,
   },
   logoutButton: {

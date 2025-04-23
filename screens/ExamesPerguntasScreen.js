@@ -19,7 +19,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
   const { selectedMaterias, numPerguntas, iddisciplina } = route.params || {};
   const { user } = useAuth();
 
-  // Guarda o ID do registo em "utilizadores" (coluna "id")
+  // Guarda o ID do registro em "utilizadores" (coluna "id")
   const [idUtilizador, setIdUtilizador] = useState(null);
 
   // Estados do quiz
@@ -40,14 +40,14 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
   // Animação de fade
   const fadeAnim = useState(new Animated.Value(0))[0];
 
-  // 1) Buscar na tabela "utilizadores" o registo cujo "id" corresponde a user.id
+  // 1) Buscar na tabela "utilizadores" o registro cujo "id" corresponde a user.id
   useEffect(() => {
     const fetchIdUtilizador = async () => {
       if (user?.id) {
         const { data, error } = await supabase
           .from("utilizadores")
           .select("id")
-          .eq("id", user.id) // Ajuste se a PK na sua tabela não se chama "id"
+          .eq("id", user.id)
           .maybeSingle();
 
         if (error) {
@@ -57,7 +57,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         if (!data) {
           console.log("Nenhum utilizador encontrado para esse ID:", user.id);
         } else {
-          setIdUtilizador(data.id); // "id" da tabela utilizadores
+          setIdUtilizador(data.id);
         }
       }
     };
@@ -107,16 +107,21 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     }
   };
 
-  // 3) Verificar as respostas e inserir no banco "pontuacoes" e depois "perguntas_pontuacao"
+  // Verifica se a pergunta foi respondida corretamente
+  const respondida_corretamentePergunta = (pergunta) => {
+    const respostaSelecionada = respostasSelecionadas[pergunta.idpergunta];
+    const alternativaCorreta = pergunta.alternativas.find((alt) => alt.correta);
+    return respostaSelecionada === alternativaCorreta?.idalternativa;
+  };
+
+  // 3) Verificar as respostas e inserir no banco "testes" e depois "perguntas_teste"
   const verificarRespostas = async () => {
     if (quizFinalizado) return;
 
     // Contagem de acertos
     let respostasCorretas = 0;
     perguntas.forEach((pergunta) => {
-      const respostaSelecionada = respostasSelecionadas[pergunta.idpergunta];
-      const alternativaCorreta = pergunta.alternativas.find((alt) => alt.correta);
-      if (respostaSelecionada === alternativaCorreta?.idalternativa) {
+      if (respondida_corretamentePergunta(pergunta)) {
         respostasCorretas++;
       }
     });
@@ -142,48 +147,158 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
       useNativeDriver: true,
     }).start();
 
-    // 3.1) Inserir pontuação no supabase
+    // 3.1) Inserir resultado do teste na tabela "testes"
     try {
       const numericIdDisc = iddisciplina ? parseInt(iddisciplina, 10) : null;
 
-      const { data: pontuacaoInserida, error: quizErro } = await supabase
-        .from("pontuacoes")
+      // Cria um novo registro em "testes"
+      const { data: testeInserido, error: testeErro } = await supabase
+        .from("testes")
         .insert([
           {
             data_criacao: new Date().toISOString(),
-            pontuacao: parseInt(porcentagem, 10),
+            pontuacao: parseFloat(pontuacaoFormula),
             iddisciplina: numericIdDisc,
             idutilizador: idUtilizador || null,
+           
           },
         ])
         .select()
         .single();
 
-      if (quizErro) {
-        console.error("Erro ao inserir pontuação:", quizErro);
+      if (testeErro) {
+        console.error("Erro ao inserir teste:", testeErro);
         return;
       }
-      if (!pontuacaoInserida) {
-        console.log("Não foi possível criar pontuação, dado nulo.");
+
+      if (!testeInserido) {
+        console.log("Não foi possível criar o teste, dado nulo.");
         return;
       }
-      const idpontuacao = pontuacaoInserida.idpontuacao;
 
-      // 3.2) Inserir perguntas usadas no teste em "perguntas_pontuacao"
-      const listaPerguntasPontuacao = perguntas.map((pergunta) => ({
-        idpontuacao,
-        idpergunta: pergunta.idpergunta,
-      }));
+      // Resgatamos o idteste que acabou de ser criado
+      const idteste = testeInserido.idteste;
 
-      const { error: errorPp } = await supabase
-        .from("perguntas_pontuacao")
-        .insert(listaPerguntasPontuacao);
+      // 3.2) Inserir perguntas usadas no teste em "perguntas_teste"
+      const listaPerguntasTeste = perguntas.map((pergunta) => {
+        // Verifica se acertou ou não a pergunta
+        const correta = respondida_corretamentePergunta(pergunta);
 
-      if (errorPp) {
-        console.error("Erro ao inserir em perguntas_pontuacao:", errorPp);
+        return {
+          idteste,
+          idpergunta: pergunta.idpergunta,
+          correta,
+          idmateria: pergunta.idmateria,
+        };
+      });
+
+      const { error: errorPerguntasTeste } = await supabase
+        .from("perguntas_teste")
+        .insert(listaPerguntasTeste);
+
+      if (errorPerguntasTeste) {
+        console.error("Erro ao inserir em perguntas_teste:", errorPerguntasTeste);
       }
     } catch (e) {
-      console.error("Erro inesperado ao salvar pontuação:", e);
+      console.error("Erro inesperado ao salvar teste:", e);
+    }
+
+    // 3.3) Atualizar ou inserir pontuação total do usuário na tabela "rank"
+    try {
+      // Verifica se o usuário já existe na tabela "rank"
+      const { data: rankRow, error: rankFetchError } = await supabase
+        .from("rank")
+        .select("idutilizador, pontos")
+        .eq("idutilizador", idUtilizador)
+        .maybeSingle();
+
+      if (rankFetchError) {
+        console.error("Erro ao buscar rank:", rankFetchError);
+      } else if (rankRow) {
+        // Se já existir, soma a nova pontuação (decimais permitidos)
+        const novaPontuacao =
+          parseFloat(rankRow.pontos) + parseFloat(pontuacaoFormula);
+
+        const { error: rankUpdateError } = await supabase
+          .from("rank")
+          .update({ pontos: novaPontuacao })
+          .eq("idutilizador", idUtilizador);
+
+        if (rankUpdateError) {
+          console.error("Erro ao atualizar rank:", rankUpdateError);
+        }
+      } else {
+        // Se não existir, cria um novo registro
+        const { error: rankInsertError } = await supabase
+          .from("rank")
+          .insert({
+            idutilizador: idUtilizador,
+            pontos: parseFloat(pontuacaoFormula),
+          });
+
+        if (rankInsertError) {
+          console.error("Erro ao inserir no rank:", rankInsertError);
+        }
+      }
+    } catch (err) {
+      console.error("Erro inesperado ao gerenciar rank:", err);
+    }
+
+    // 3.4) Adicionar/atualizar cada pergunta respondida na tabela "resolucao"
+    try {
+      for (const pergunta of perguntas) {
+        const acertou = respondida_corretamentePergunta(pergunta);
+        const idPergunta = pergunta.idpergunta;
+        const idMateria = pergunta.idmateria;
+
+        // Verifica se já existe um registro do user + pergunta
+        const { data: rankPessoalRow, error: fetchRankPessoalError } = await supabase
+          .from("resolucao")
+          .select("idutilizador, idpergunta, correta")
+          .eq("idutilizador", idUtilizador)
+          .eq("idpergunta", idPergunta)
+          .maybeSingle();
+
+        if (fetchRankPessoalError) {
+          console.error("Erro ao buscar resolucao:", fetchRankPessoalError);
+          continue; // pula para a próxima pergunta
+        }
+
+        // Se não existe, insere
+        if (!rankPessoalRow) {
+          // Insere o registro com "correta" = true/false de acordo com a resposta
+          const { error: insertRankPessoalError } = await supabase
+            .from("resolucao")
+            .insert({
+              idutilizador: idUtilizador,
+              idpergunta: idPergunta,
+              idmateria: idMateria,
+              correta: acertou,
+            });
+
+          if (insertRankPessoalError) {
+            console.error("Erro ao inserir em resolucao:", insertRankPessoalError);
+          }
+        } else {
+          // Se já existe e o user acertou agora -> atualiza para correta = true
+          if (acertou && !rankPessoalRow.correta) {
+            // Só atualiza se estava false e agora é true
+            const { error: updateRankPessoalError } = await supabase
+              .from("resolucao")
+              .update({ correta: true })
+              .eq("idutilizador", idUtilizador)
+              .eq("idpergunta", idPergunta);
+
+            if (updateRankPessoalError) {
+              console.error("Erro ao atualizar resolucao:", updateRankPessoalError);
+            }
+          }
+          // Se já existe e o user errou novamente, não altera nada:
+          // (fica correto se já estava true, ou fica false se já estava false)
+        }
+      }
+    } catch (err) {
+      console.error("Erro inesperado ao gerenciar resolucao:", err);
     }
   };
 
@@ -205,13 +320,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     setMostrarVisualizacao(true);
   };
 
-  // Verifica se respondeu corretamente a pergunta
-  const respondida_corretamentePergunta = (pergunta) => {
-    const respostaSelecionada = respostasSelecionadas[pergunta.idpergunta];
-    const alternativaCorreta = pergunta.alternativas.find((alt) => alt.correta);
-    return respostaSelecionada === alternativaCorreta?.idalternativa;
-  };
-
   // Renderização do teste completo (tela final)
   const renderTesteCompleto = () => {
     return (
@@ -223,14 +331,18 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
           const respostaSelecionada = respostasSelecionadas[pergunta.idpergunta];
 
           return (
-            <View key={`pergunta-${pergunta.idpergunta}`} style={styles.finalPerguntaContainer}>
+            <View
+              key={`pergunta-${pergunta.idpergunta}`}
+              style={styles.finalPerguntaContainer}
+            >
               <Text style={styles.finalPerguntaTitulo}>
                 {index + 1}. {pergunta.texto}
               </Text>
               <View style={{ marginTop: 10 }} />
 
               {pergunta.alternativas.map((alternativa) => {
-                const selecionada = respostaSelecionada === alternativa.idalternativa;
+                const selecionada =
+                  respostaSelecionada === alternativa.idalternativa;
                 let estilo = [styles.alternativaButtonFinal];
 
                 if (selecionada) {
@@ -282,7 +394,9 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                   </Text>
 
                   <View style={styles.perguntaContainer}>
-                    <Text style={styles.perguntaText}>{perguntas[perguntaAtual]?.texto}</Text>
+                    <Text style={styles.perguntaText}>
+                      {perguntas[perguntaAtual]?.texto}
+                    </Text>
                   </View>
 
                   <View style={styles.respostasContainer}>
@@ -291,8 +405,9 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                         key={`alt-${alternativa.idalternativa}`}
                         style={[
                           styles.alternativaButton,
-                          respostasSelecionadas[perguntas[perguntaAtual]?.idpergunta] ===
-                            alternativa.idalternativa && styles.selectedAnswer,
+                          respostasSelecionadas[
+                            perguntas[perguntaAtual]?.idpergunta
+                          ] === alternativa.idalternativa && styles.selectedAnswer,
                         ]}
                         onPress={() =>
                           handleRespostaSelecionada(

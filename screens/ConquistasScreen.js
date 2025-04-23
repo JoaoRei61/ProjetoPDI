@@ -1,511 +1,518 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
-  ScrollView,
-  ActivityIndicator,
   StyleSheet,
-  Alert,
-  TextInput,
+  ScrollView,
+  Text,
+  ActivityIndicator,
   TouchableOpacity,
-  Modal,
-  Pressable,
 } from "react-native";
-import { Text } from "react-native-paper";
 import { useAuth } from "../context/AuthProvider";
 import supabase from "../supabaseconfig";
 import Header from "../componentes/header";
 
+/**
+ * Tela de "Conquistas" em que:
+ *  - Selecionamos Ano e Semestre com "cards" (visual semelhante ao resto do app),
+ *  - Ao escolher ambos, carregamos as disciplinas e matérias + barras de progresso
+ *    sem precisar de um botão extra de "Carregar Disciplinas".
+ */
+
 export default function ConquistasScreen({ navigation }) {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
-  const [quizzesTodos, setQuizzesTodos] = useState([]);
-  const [cursos, setCursos] = useState([]);
-  const [filtroTexto, setFiltroTexto] = useState("");
-  const [filtroCurso, setFiltroCurso] = useState("");
-  const [ordem, setOrdem] = useState("pontuacao_desc");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState("");
+  // Estados básicos
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // ------------------ Estados novos para sub-botões  ------------------
-  const [mostrarOpcoesPontuacao, setMostrarOpcoesPontuacao] = useState(false);
-  const [mostrarOpcoesData, setMostrarOpcoesData] = useState(false);
-  const [mostrarOpcoesCursos, setMostrarOpcoesCursos] = useState(false);
-  // --------------------------------------------------------------------
+  // Guardamos o idcurso do user e o userId (para resolucao)
+  const [userCourseId, setUserCourseId] = useState(null);
+  const [userId, setUserId] = useState(null);
 
+  // Seleção de Ano e Semestre
+  const [anoSelecionado, setAnoSelecionado] = useState(null);
+  const [semestreSelecionado, setSemestreSelecionado] = useState(null);
+
+  // Disciplinas encontradas + matérias por disciplina
+  const [disciplinasFiltradas, setDisciplinasFiltradas] = useState([]);
+  const [materiasPorDisciplina, setMateriasPorDisciplina] = useState({});
+
+  // Arrays fixos (3 anos, 2 semestres)
+  const ANOS = [1, 2, 3];
+  const SEMESTRES = [1, 2];
+
+  // 1) Ao montar, buscar user + curso
   useEffect(() => {
-    if (!user && !loading) {
-      Alert.alert("Sessão Expirada", "Por favor, faça login novamente.", [
-        { text: "OK", onPress: () => navigation.replace("Login") },
-      ]);
+    fetchUserAndCourse();
+  }, []);
+
+  const fetchUserAndCourse = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage("");
+
+      const {
+        data: { user: supabaseUser },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
+      if (!supabaseUser) {
+        setErrorMessage("Usuário não encontrado / não logado.");
+        return;
+      }
+      setUserId(supabaseUser.id);
+
+      // Buscar idcurso do utilizador
+      const { data: userData, error: userDataError } = await supabase
+        .from("utilizadores")
+        .select("idcurso")
+        .eq("id", supabaseUser.id)
+        .single();
+
+      if (userDataError) throw userDataError;
+      if (!userData || !userData.idcurso) {
+        setErrorMessage("O utilizador não tem um curso associado.");
+        return;
+      }
+
+      setUserCourseId(userData.idcurso);
+    } catch (err) {
+      console.error("Erro ao buscar curso do user:", err);
+      setErrorMessage("Erro ao obter dados do utilizador.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2) Sempre que ano & semestre mudam, se ambos definidos, buscar disciplinas
+  useEffect(() => {
+    if (anoSelecionado && semestreSelecionado) {
+      buscarDisciplinas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anoSelecionado, semestreSelecionado]);
+
+  // 3) Buscar disciplinas + matérias + progresso
+  const buscarDisciplinas = async () => {
+    if (!userCourseId) {
+      setErrorMessage("Não foi possível obter o curso do utilizador.");
       return;
     }
-    fetchConquistas();
-  }, [user]);
+    setLoading(true);
+    setErrorMessage("");
 
-  async function fetchConquistas() {
     try {
-      setCarregando(true);
-      setErro("");
+      const { data: cdData, error: cdError } = await supabase
+        .from("curso_disciplina")
+        .select("iddisciplina, ano, semestre")
+        .eq("idcurso", userCourseId)
+        .eq("ano", anoSelecionado)
+        .eq("semestre", semestreSelecionado);
 
-      const { data: quizzes, error: quizzesError } = await supabase
-        .from("quizzes")
-        .select("idquiz, data_criacao, pontuacao, idutilizador");
+      if (cdError) throw cdError;
+      if (!cdData || cdData.length === 0) {
+        setErrorMessage("Não foram encontradas disciplinas para este ano/semestre.");
+        setDisciplinasFiltradas([]);
+        setMateriasPorDisciplina({});
+        setLoading(false);
+        return;
+      }
 
-      if (quizzesError) throw quizzesError;
+      // Obter nome da disciplina
+      const listaDisciplinasPromises = cdData.map(async (row) => {
+        const { data: discRow, error: discError } = await supabase
+          .from("disciplinas")
+          .select("iddisciplina, nome")
+          .eq("iddisciplina", row.iddisciplina)
+          .single();
+        if (discError) {
+          console.error("Erro ao buscar disciplina:", discError);
+          return null;
+        }
+        if (!discRow) return null;
 
-      const { data: utilizadores, error: utilizadoresError } = await supabase
-        .from("utilizadores")
-        .select("id, nome, idcurso");
-
-      if (utilizadoresError) throw utilizadoresError;
-
-      const { data: cursosData, error: cursosError } = await supabase
-        .from("cursos")
-        .select("idcurso, nome");
-
-      if (cursosError) throw cursosError;
-
-      const utilizadoresMap = {};
-      utilizadores.forEach((u) => {
-        utilizadoresMap[u.id] = u;
-      });
-
-      const cursosMap = {};
-      cursosData.forEach((c) => {
-        cursosMap[c.idcurso] = c.nome;
-      });
-
-      const quizzesComInfo = quizzes.map((q) => {
-        const userInfo = utilizadoresMap[q.idutilizador] || {};
         return {
-          ...q,
-          nome: userInfo.nome || "Desconhecido",
-          curso: cursosMap[userInfo.idcurso] || "-",
+          iddisciplina: discRow.iddisciplina,
+          nomeDisciplina: discRow.nome,
         };
       });
 
-      setCursos(cursosData);
-      setQuizzesTodos(quizzesComInfo);
-    } catch (err) {
-      console.error("Erro ao buscar conquistas:", err);
-      setErro("Ocorreu um erro ao carregar os dados.");
-    } finally {
-      setCarregando(false);
-    }
-  }
+      const disciplinasEncontradas = await Promise.all(listaDisciplinasPromises);
+      const disciplinasValidas = disciplinasEncontradas.filter(Boolean);
+      setDisciplinasFiltradas(disciplinasValidas);
 
-  const quizzesFiltrados = quizzesTodos
-    .filter((q) => q.nome.toLowerCase().includes(filtroTexto.toLowerCase()))
-    .filter((q) => (filtroCurso ? q.curso === filtroCurso : true))
-    .sort((a, b) => {
-      switch (ordem) {
-        case "pontuacao_asc":
-          return a.pontuacao - b.pontuacao;
-        case "pontuacao_desc":
-          return b.pontuacao - a.pontuacao;
-        case "data_asc":
-          return new Date(a.data_criacao) - new Date(b.data_criacao);
-        case "data_desc":
-          return new Date(b.data_criacao) - new Date(a.data_criacao);
-        default:
-          return 0;
+      // Para cada disciplina, buscar materias e progresso
+      let tempMaterias = {};
+      for (let disc of disciplinasValidas) {
+        const { data: matData, error: matError } = await supabase
+          .from("materia")
+          .select("idmateria, nome")
+          .eq("iddisciplina", disc.iddisciplina);
+
+        if (matError) {
+          console.error("Erro ao buscar materia:", matError);
+          tempMaterias[disc.iddisciplina] = [];
+          continue;
+        }
+
+        if (!matData || matData.length === 0) {
+          tempMaterias[disc.iddisciplina] = [];
+          continue;
+        }
+
+        let arrComProgresso = [];
+        for (let mat of matData) {
+          const { data: pergData, error: pergError } = await supabase
+            .from("perguntas")
+            .select("idpergunta")
+            .eq("idmateria", mat.idmateria);
+
+          if (pergError) {
+            console.error(pergError);
+            continue;
+          }
+          const totalPerg = pergData.length;
+          if (totalPerg === 0) {
+            arrComProgresso.push({
+              ...mat,
+              total: 0,
+              corretas: 0,
+              percentual: 0,
+            });
+            continue;
+          }
+
+          const idsPerg = pergData.map((p) => p.idpergunta);
+          const { data: resolData, error: resolError } = await supabase
+            .from("resolucao")
+            .select("idpergunta")
+            .in("idpergunta", idsPerg)
+            .eq("idutilizador", userId)
+            .eq("correta", true);
+
+          if (resolError) {
+            console.error(resolError);
+            continue;
+          }
+
+          const corretas = resolData ? resolData.length : 0;
+          const pct = ((corretas / totalPerg) * 100).toFixed(2);
+
+          arrComProgresso.push({
+            ...mat,
+            total: totalPerg,
+            corretas,
+            percentual: pct,
+          });
+        }
+
+        tempMaterias[disc.iddisciplina] = arrComProgresso;
       }
-    });
 
-  if (carregando) {
-    return (
-      <View style={styles.containerLoading}>
-        <Header />
-        <ActivityIndicator size="large" color="#0056b3" style={{ marginTop: 20 }} />
-      </View>
-    );
-  }
+      setMateriasPorDisciplina(tempMaterias);
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+      setErrorMessage("Erro ao buscar disciplinas/matérias.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Resetar toda a seleção
+  const resetSelecao = () => {
+    setAnoSelecionado(null);
+    setSemestreSelecionado(null);
+    setDisciplinasFiltradas([]);
+    setMateriasPorDisciplina({});
+    setErrorMessage("");
+  };
+
+  // ============ RENDER ============ //
   return (
     <View style={styles.container}>
-      <Header />
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>📊 Todos os Quizzes</Text>
+      <Header navigation={navigation} />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Pesquisar por nome..."
-          value={filtroTexto}
-          onChangeText={setFiltroTexto}
-        />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Cabeçalho no estilo DisciplinasScreen */}
+        <View style={styles.disciplinaHeader}>
+          <Text style={styles.emoji}>📚</Text>
+          <Text style={styles.disciplinaNome}>Conquistas</Text>
+        </View>
 
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.filtroBotao}>
-          <Text style={styles.filtroBotaoTexto}>Filtros avançados</Text>
-        </TouchableOpacity>
+        {/* Mensagens de erro/loading */}
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        {loading && <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />}
 
-        {erro ? (
-          <Text style={styles.errorMessage}>{erro}</Text>
-        ) : (
-          <View style={styles.tableCard}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.cell, styles.headerCell]}>#</Text>
-              <Text style={[styles.cell, styles.headerCell]}>Nome</Text>
-              <Text style={[styles.cell, styles.headerCell]}>Curso</Text>
-              <Text style={[styles.cell, styles.headerCell]}>Pontuação</Text>
-              <Text style={[styles.cell, styles.headerCell]}>Data</Text>
-            </View>
-            {quizzesFiltrados.map((quiz, idx) => (
-              <View
-                key={quiz.idquiz}
-                style={[styles.tableRow, idx % 2 === 0 ? styles.rowEven : styles.rowOdd]}
-              >
-                <Text style={styles.cell}>{idx + 1}</Text>
-                <Text style={styles.cell}>{quiz.nome}</Text>
-                <Text style={styles.cell}>{quiz.curso}</Text>
-                <Text style={styles.cell}>{quiz.pontuacao}%</Text>
-                <Text style={styles.cell}>{new Date(quiz.data_criacao).toLocaleDateString()}</Text>
+        {/* Se ainda não escolheu ANO, exibir "cards" para cada ano */}
+        {!anoSelecionado && (
+          <View style={{ width: "100%" }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
+              Selecione o Ano
+            </Text>
+            {ANOS.map((ano) => (
+              <View style={styles.cardExercicios} key={`ano-${ano}`}>
+                <Text style={styles.cardTitle}>Ano {ano}</Text>
+                <Text style={styles.cardSubtitle}>
+                  Clique para selecionar o {ano}º ano
+                </Text>
+                <TouchableOpacity
+                  style={styles.cardButton}
+                  onPress={() => {
+                    setAnoSelecionado(ano);
+                    setSemestreSelecionado(null);
+                    setDisciplinasFiltradas([]);
+                    setMateriasPorDisciplina({});
+                  }}
+                >
+                  <Text style={styles.cardButtonText}>Selecionar Ano {ano}</Text>
+                </TouchableOpacity>
               </View>
             ))}
           </View>
         )}
-      </ScrollView>
 
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>📋 Filtros Avançados</Text>
-
-            {/* ANTIGAS OPÇÕES PRESSABLE (FICAM ESCONDIDAS) */}
-            <Text style={[styles.modalOption, styles.hiddenPressable]}>Ordenar por:</Text>
-            {[
-              { label: "Pontuação ⬇", value: "pontuacao_desc" },
-              { label: "Pontuação ⬆", value: "pontuacao_asc" },
-              { label: "Data ⬇", value: "data_desc" },
-              { label: "Data ⬆", value: "data_asc" },
-            ].map((opt) => (
-              <Pressable
-                key={opt.value}
-                onPress={() => setOrdem(opt.value)}
-                style={styles.hiddenPressable}
-              >
-                <Text style={[styles.modalOption, ordem === opt.value && styles.selectedOption]}>
-                  {opt.label}
+        {/* Se escolheu ANO mas não SEMESTRE, exibir "cards" para cada semestre */}
+        {anoSelecionado && !semestreSelecionado && (
+          <View style={{ width: "100%" }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
+              Selecionou Ano {anoSelecionado}. Agora escolha o semestre:
+            </Text>
+            {SEMESTRES.map((sem) => (
+              <View style={styles.cardExercicios} key={`sem-${sem}`}>
+                <Text style={styles.cardTitle}>Semestre {sem}</Text>
+                <Text style={styles.cardSubtitle}>
+                  Clique para selecionar o {sem}º semestre do ano {anoSelecionado}
                 </Text>
-              </Pressable>
+                <TouchableOpacity
+                  style={styles.cardButton}
+                  onPress={() => {
+                    setSemestreSelecionado(sem);
+                    // Assim que definirmos, o useEffect chamará buscarDisciplinas()
+                  }}
+                >
+                  <Text style={styles.cardButtonText}>
+                    Selecionar Semestre {sem}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             ))}
 
-            <Text style={[styles.filtroLabel, styles.hiddenPressable]}>Filtrar por curso:</Text>
-            <Pressable onPress={() => setFiltroCurso("")} style={styles.hiddenPressable}>
-              <Text style={[styles.modalOption, filtroCurso === "" && styles.selectedOption]}>
-                Todos
-              </Text>
-            </Pressable>
-            {cursos.map((c) => (
-              <Pressable
-                key={c.idcurso}
-                onPress={() => setFiltroCurso(c.nome)}
-                style={styles.hiddenPressable}
-              >
-                <Text style={[styles.modalOption, filtroCurso === c.nome && styles.selectedOption]}>
-                  {c.nome}
-                </Text>
-              </Pressable>
-            ))}
-
-            {/* --------------------------- NOVOS BOTÕES --------------------------- */}
             <TouchableOpacity
-              style={styles.botaoFiltroCategoria}
-              onPress={() => {
-                setMostrarOpcoesPontuacao(!mostrarOpcoesPontuacao);
-                setMostrarOpcoesData(false);
-                setMostrarOpcoesCursos(false);
-              }}
+              style={[styles.cardButton, { marginTop: 20 }]}
+              onPress={resetSelecao}
             >
-              <Text style={styles.botaoFiltroCategoriaTexto}>Pontuação</Text>
-            </TouchableOpacity>
-            {mostrarOpcoesPontuacao && (
-              <View style={styles.subMenu}>
-                <Pressable
-                  onPress={() => {
-                    setOrdem("pontuacao_asc");
-                    setMostrarOpcoesPontuacao(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOption,
-                      ordem === "pontuacao_asc" && styles.selectedOption,
-                    ]}
-                  >
-                    Ascendente
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setOrdem("pontuacao_desc");
-                    setMostrarOpcoesPontuacao(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOption,
-                      ordem === "pontuacao_desc" && styles.selectedOption,
-                    ]}
-                  >
-                    Descendente
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={styles.botaoFiltroCategoria}
-              onPress={() => {
-                setMostrarOpcoesData(!mostrarOpcoesData);
-                setMostrarOpcoesPontuacao(false);
-                setMostrarOpcoesCursos(false);
-              }}
-            >
-              <Text style={styles.botaoFiltroCategoriaTexto}>Data</Text>
-            </TouchableOpacity>
-            {mostrarOpcoesData && (
-              <View style={styles.subMenu}>
-                <Pressable
-                  onPress={() => {
-                    setOrdem("data_asc");
-                    setMostrarOpcoesData(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOption,
-                      ordem === "data_asc" && styles.selectedOption,
-                    ]}
-                  >
-                    Mais antiga
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setOrdem("data_desc");
-                    setMostrarOpcoesData(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOption,
-                      ordem === "data_desc" && styles.selectedOption,
-                    ]}
-                  >
-                    Mais recente
-                  </Text>
-                </Pressable>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={styles.botaoFiltroCategoria}
-              onPress={() => {
-                setMostrarOpcoesCursos(!mostrarOpcoesCursos);
-                setMostrarOpcoesPontuacao(false);
-                setMostrarOpcoesData(false);
-              }}
-            >
-              <Text style={styles.botaoFiltroCategoriaTexto}>Cursos</Text>
-            </TouchableOpacity>
-            {mostrarOpcoesCursos && (
-              <View style={styles.subMenu}>
-                <Pressable
-                  onPress={() => {
-                    setFiltroCurso("");
-                    setMostrarOpcoesCursos(false);
-                  }}
-                >
-                  <Text style={[styles.modalOption, filtroCurso === "" && styles.selectedOption]}>
-                    Todos
-                  </Text>
-                </Pressable>
-                {cursos.map((c) => (
-                  <Pressable
-                    key={c.idcurso}
-                    onPress={() => {
-                      setFiltroCurso(c.nome);
-                      setMostrarOpcoesCursos(false);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.modalOption,
-                        filtroCurso === c.nome && styles.selectedOption,
-                      ]}
-                    >
-                      {c.nome}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            )}
-            {/* ------------------------------------------------------------------- */}
-
-            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.fecharModal}>
-              <Text style={styles.fecharModalTexto}>Fechar</Text>
+              <Text style={styles.cardButtonText}>← Voltar / Mudar Ano</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        )}
+
+        {/* Se já tem ano e semestre, exibimos as disciplinas e matérias */}
+        {anoSelecionado && semestreSelecionado && (
+          <View style={{ width: "100%" }}>
+            <Text style={[styles.sectionTitle, { marginBottom: 10 }]}>
+              Ano {anoSelecionado}, Semestre {semestreSelecionado}
+            </Text>
+
+            {disciplinasFiltradas.length > 0 ? (
+              disciplinasFiltradas.map((disc) => {
+                const listaMat = materiasPorDisciplina[disc.iddisciplina] || [];
+                return (
+                  <View style={styles.cardExercicios} key={disc.iddisciplina}>
+                    <Text style={styles.cardTitle}>{disc.nomeDisciplina}</Text>
+                    <Text style={styles.cardSubtitle}>
+                      Matérias e progresso:
+                    </Text>
+
+                    {listaMat.length === 0 ? (
+                      <Text style={styles.infoText}>
+                        Nenhuma matéria encontrada para esta disciplina.
+                      </Text>
+                    ) : (
+                      listaMat.map((mat) => (
+                        <View key={mat.idmateria} style={styles.progressContainer}>
+                          <Text style={styles.materiaText}>{mat.nome}</Text>
+                          {/* Barra de progresso */}
+                          <View style={styles.progressBar}>
+                            <View
+                              style={[
+                                styles.progressFill,
+                                { width: `${mat.percentual}%` },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.progressLabel}>
+                            {mat.corretas}/{mat.total} certas ({mat.percentual}%)
+                          </Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                );
+              })
+            ) : (
+              !loading && (
+                <Text style={styles.infoText}>
+                  Não foram encontradas disciplinas para este ano/semestre.
+                </Text>
+              )
+            )}
+
+            <TouchableOpacity
+              style={[styles.cardButton, { marginTop: 20 }]}
+              onPress={resetSelecao}
+            >
+              <Text style={styles.cardButtonText}>← Alterar Ano/Semestre</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.voltarButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.voltarButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
 
+// ================== ESTILOS ================== //
 const styles = StyleSheet.create({
-  containerLoading: {
-    flex: 1,
-    backgroundColor: "#f7f7f7",
-  },
-  container: {
-    flex: 1,
-    backgroundColor: "#f7f7f7",
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#003366",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderRadius: 6,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    padding: 10,
-    marginBottom: 10,
-  },
-  filtroBotao: {
-    backgroundColor: "#0056b3",
-    borderRadius: 6,
-    padding: 10,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  filtroBotaoTexto: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  errorMessage: {
+  container: { flex: 1, backgroundColor: "#e8f0fe" },
+  scrollContainer: { padding: 16, alignItems: "center" },
+  loader: { marginTop: 20 },
+  errorText: {
     color: "red",
     fontSize: 16,
     textAlign: "center",
-    marginTop: 20,
-  },
-  tableCard: {
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    padding: 8,
-  },
-  tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#003366",
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  tableRow: {
-    flexDirection: "row",
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-  },
-  cell: {
-    flex: 1,
-    color: "#333",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  headerCell: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 14,
-    paddingVertical: 10,
-  },
-  rowEven: {
-    backgroundColor: "#f0f4f8",
-  },
-  rowOdd: {
-    backgroundColor: "#e8ecf1",
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    width: "80%",
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  modalOption: {
-    paddingVertical: 8,
-    fontSize: 16,
-    color: "#333",
-  },
-  selectedOption: {
-    fontWeight: "bold",
-    color: "#0056b3",
-  },
-  fecharModal: {
-    backgroundColor: "#0056b3",
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 20,
-    alignItems: "center",
-  },
-  fecharModalTexto: {
-    color: "white",
-    fontWeight: "bold",
+    marginVertical: 10,
   },
 
-  // ---- ESTILOS NOVOS PARA ESCONDER O ORIGINAL E EXIBIR OS BOTÕES ----
-  hiddenPressable: {
-    height: 0,
-    overflow: "hidden",
-    opacity: 0,
+  // Header
+  disciplinaHeader: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+    width: "100%",
   },
-  filtroLabel: {
-    marginTop: 10,
-    fontWeight: "600",
-    color: "#333",
-    opacity: 0, // esconde a label anterior
-    height: 0, // sem remover a linha
-  },
-  botaoFiltroCategoria: {
-    backgroundColor: "#eee",
-    padding: 10,
-    borderRadius: 6,
-    marginVertical: 6,
-  },
-  botaoFiltroCategoriaTexto: {
-    color: "#333",
+  disciplinaNome: {
+    fontSize: 22,
     fontWeight: "bold",
-    textAlign: "center",
+    color: "#1a237e",
+    marginLeft: 10,
   },
-  subMenu: {
-    backgroundColor: "#fafafa",
-    marginBottom: 10,
-    paddingLeft: 16,
-    borderLeftColor: "#ccc",
-    borderLeftWidth: 2,
+  emoji: { fontSize: 30 },
+
+  // Título de cada seção
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1a237e",
+    marginBottom: 5,
+  },
+
+  // Cards
+  cardExercicios: {
+    backgroundColor: "#fff3e0",
+    borderLeftWidth: 6,
+    borderLeftColor: "#fb8c00",
+    width: "100%",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#263238",
+    marginBottom: 8,
+  },
+  cardSubtitle: {
+    fontSize: 15,
+    color: "#424242",
+    marginBottom: 12,
+  },
+  cardButton: {
+    alignSelf: "flex-start",
+    backgroundColor: "#1a237e",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginTop: 5,
+  },
+  cardButtonText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
+  infoText: {
+    textAlign: "center",
+    fontSize: 14,
+    marginTop: 10,
+    color: "#888",
+  },
+
+  // Barra de progresso
+  progressContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  materiaText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+    color: "#333",
+  },
+  progressBar: {
+    width: "100%",
+    height: 12,
+    backgroundColor: "#eee",
+    borderRadius: 6,
+    overflow: "hidden",
+    marginVertical: 5,
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#4CAF50",
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: "#333",
+    marginTop: 2,
+  },
+
+  // Botão final
+  voltarButton: {
+    backgroundColor: "#0056b3",
+    borderRadius: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    marginTop: 30,
+    marginBottom: 40,
+  },
+  voltarButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
