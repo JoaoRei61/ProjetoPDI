@@ -59,7 +59,7 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
 
       const { data, error } = await supabase
         .from("perguntas")
-        .select("idpergunta, texto, explicacao, alternativas(*)")
+        .select("idpergunta, texto, explicacao, idmateria, alternativas(*)")
         .in("idmateria", selectedMaterias || []);
 
       if (error) {
@@ -104,14 +104,16 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
   };
 
   // Submeter a resposta
-  const handleSubmeter = () => {
+  const handleSubmeter = async () => {
     if (!perguntaAtual || alternativaSelecionada === null) {
       Alert.alert("Ops", "Selecione alguma alternativa antes de submeter.");
       return;
     }
+
     const altCorreta = perguntaAtual.alternativas.find((a) => a.correta);
     const acertou = altCorreta && altCorreta.idalternativa === alternativaSelecionada;
 
+    // Atualizar estado local
     setRespostas((prev) => ({
       ...prev,
       [perguntaAtual.idpergunta]: {
@@ -119,6 +121,46 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
         resposta: alternativaSelecionada,
       },
     }));
+
+    try {
+      // Verifica existência na tabela resolucao
+      const { data: resolucaoExistente, error: fetchError } = await supabase
+        .from("resolucao")
+        .select("correta")
+        .eq("idutilizador", user.id)
+        .eq("idpergunta", perguntaAtual.idpergunta)
+        .eq("idmateria", perguntaAtual.idmateria)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error("Erro ao verificar resolução existente:", fetchError);
+        return;
+      }
+
+      if (!resolucaoExistente) {
+        // Inserir nova resolução
+        const { error: insertError } = await supabase.from("resolucao").insert([
+          {
+            idutilizador: user.id,
+            idpergunta: perguntaAtual.idpergunta,
+            idmateria: perguntaAtual.idmateria,
+            correta: acertou,
+          },
+        ]);
+        if (insertError) console.error("Erro ao inserir resolução:", insertError);
+      } else if (!resolucaoExistente.correta && acertou) {
+        // Atualizar apenas se estava false e agora acertou
+        const { error: updateError } = await supabase
+          .from("resolucao")
+          .update({ correta: true })
+          .eq("idutilizador", user.id)
+          .eq("idpergunta", perguntaAtual.idpergunta)
+          .eq("idmateria", perguntaAtual.idmateria);
+        if (updateError) console.error("Erro ao atualizar resolução:", updateError);
+      }
+    } catch (err) {
+      console.error("Erro inesperado ao gravar resolução:", err);
+    }
   };
 
   // Próximo exercício
@@ -131,44 +173,27 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
     }
   };
 
-  // Ir para histórico
-  const verHistorico = () => {
-    setMode("historico");
-  };
+  // Modos de navegação
+  const verHistorico = () => setMode("historico");
+  const voltarResolvendo = () => setMode("resolvendo");
+  const sairResolucao = () => navigation.navigate("ExerciciosScreen", { iddisciplina });
 
-  // Voltar para resolvendo
-  const voltarResolvendo = () => {
-    setMode("resolvendo");
-  };
-
-  // Sair do fluxo (volta para a tela ExerciciosScreen)
-  const sairResolucao = () => {
-    navigation.navigate("ExerciciosScreen", { iddisciplina });
-  };
-
-  // -------------------------------------------
-  // 3) Modo “historico” => apenas perguntas respondidas
-  // -------------------------------------------
+  // Renderizações de histórico e final
   const renderHistorico = () => {
-    // Filtra perguntas respondidas
     const perguntasResolvidas = perguntas.filter((p) => respostas[p.idpergunta]);
-
     return (
       <View style={styles.container}>
         <Header />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.title}>Exercícios Resolvidos</Text>
-
           {perguntasResolvidas.length === 0 ? (
-            <Text style={styles.infoText}>
-              Ainda não há nenhum exercício respondido.
-            </Text>
+            <Text style={styles.infoText}>Ainda não há nenhum exercício respondido.</Text>
           ) : (
             perguntasResolvidas.map((p) => {
               const feed = respostas[p.idpergunta];
               return (
                 <TouchableOpacity
-                  key={`hist-${p.idpergunta}`}
+                  key={p.idpergunta}
                   style={styles.cardHistorico}
                   onPress={() => {
                     setPerguntaHistorico(p);
@@ -176,20 +201,16 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
                   }}
                 >
                   <Text style={styles.cardHistoricoText}>{p.texto}</Text>
-                  {feed.acertou ? (
-                    <Text style={[styles.cardHistoricoInfo, { color: "green" }]}>
-                      ✔ Acertou
-                    </Text>
-                  ) : (
-                    <Text style={[styles.cardHistoricoInfo, { color: "red" }]}>
-                      ✘ Errou
-                    </Text>
-                  )}
+                  <Text style={[
+                    styles.cardHistoricoInfo,
+                    { color: feed.acertou ? "green" : "red" }
+                  ]}>
+                    {feed.acertou ? "✔ Acertou" : "✘ Errou"}
+                  </Text>
                 </TouchableOpacity>
               );
             })
           )}
-
           <TouchableOpacity style={styles.botaoVoltar} onPress={voltarResolvendo}>
             <Text style={styles.botaoVoltarText}>Voltar à Resolução</Text>
           </TouchableOpacity>
@@ -198,27 +219,12 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
     );
   };
 
-  // -------------------------------------------
-  // 4) Modo "historicoDetalhe" => exibe 1 pergunta respondida
-  // -------------------------------------------
   const renderHistoricoDetalhe = () => {
-    if (!perguntaHistorico) {
-      setMode("historico");
-      return null;
-    }
+    if (!perguntaHistorico) return renderHistorico();
     const feed = respostas[perguntaHistorico.idpergunta];
-    if (!feed) {
-      setMode("historico");
-      return null;
-    }
-
-    const foiCerta = feed.acertou;
-    const altMarcada = feed.resposta;
-    const altCorreta = perguntaHistorico.alternativas.find((x) => x.correta);
-    const textoMarcada =
-      perguntaHistorico.alternativas.find((x) => x.idalternativa === altMarcada)?.texto ||
-      "N/A";
-
+    const textoMarcada = perguntaHistorico.alternativas.find(
+      (a) => a.idalternativa === feed.resposta
+    )?.texto;
     return (
       <View style={styles.container}>
         <Header />
@@ -227,35 +233,20 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
           <View style={styles.perguntaContainer}>
             <Text style={styles.perguntaText}>{perguntaHistorico.texto}</Text>
           </View>
-
-          <Text style={styles.historicoDetalheInfo}>
-            Sua Resposta: {textoMarcada}
+          <Text style={styles.historicoDetalheInfo}>Sua Resposta: {textoMarcada}</Text>
+          <Text style={[
+            styles.historicoDetalheInfo,
+            { color: feed.acertou ? "green" : "red" }
+          ]}>
+            {feed.acertou ? "✔ Você Acertou!" : "✘ Você Errou"}
           </Text>
-          {foiCerta ? (
-            <Text style={[styles.historicoDetalheInfo, { color: "green" }]}>
-              ✔ Você Acertou!
-            </Text>
-          ) : (
-            <Text style={[styles.historicoDetalheInfo, { color: "red" }]}>
-              ✘ Você Errou
-            </Text>
-          )}
-
-          {/* Mostrar explicação mesmo se acertou */}
           {perguntaHistorico.explicacao && (
             <View style={styles.explicacaoContainer}>
               <Text style={styles.explicacaoTitle}>Explicação:</Text>
               <Text style={styles.explicacaoText}>{perguntaHistorico.explicacao}</Text>
             </View>
           )}
-
-          <TouchableOpacity
-            style={styles.botaoVoltar}
-            onPress={() => {
-              setPerguntaHistorico(null);
-              setMode("historico");
-            }}
-          >
+          <TouchableOpacity style={styles.botaoVoltar} onPress={verHistorico}>
             <Text style={styles.botaoVoltarText}>Voltar ao Histórico</Text>
           </TouchableOpacity>
         </ScrollView>
@@ -263,34 +254,23 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
     );
   };
 
-  // -------------------------------------------
-  // 5) Modo "final"
-  // -------------------------------------------
-  const renderFinal = () => {
-    return (
-      <View style={styles.container}>
-        <Header />
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Fim dos Exercícios</Text>
-          <Text style={styles.infoText}>
-            Você chegou ao fim da lista de exercícios.
-          </Text>
+  const renderFinal = () => (
+    <View style={styles.container}>
+      <Header />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.title}>Fim dos Exercícios</Text>
+        <Text style={styles.infoText}>Você chegou ao fim da lista de exercícios.</Text>
+        <TouchableOpacity style={styles.botaoGrande} onPress={sairResolucao}>
+          <Text style={styles.botaoGrandeText}>Voltar à Página de Exercícios</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.botaoGrande} onPress={verHistorico}>
+          <Text style={styles.botaoGrandeText}>Ver Exercícios Resolvidos</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  );
 
-          <TouchableOpacity style={styles.botaoGrande} onPress={sairResolucao}>
-            <Text style={styles.botaoGrandeText}>Voltar à Página de Exercícios</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.botaoGrande} onPress={() => setMode("historico")}>
-            <Text style={styles.botaoGrandeText}>Ver Exercícios Resolvidos</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    );
-  };
-
-  // -------------------------------------------
   // Render principal
-  // -------------------------------------------
   if (loading) {
     return (
       <View style={styles.container}>
@@ -306,31 +286,18 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Text style={styles.errorText}>{errorMessage}</Text>
           <TouchableOpacity style={styles.botaoGrande} onPress={sairResolucao}>
-            <Text style={styles.botaoGrandeText}>Sair da Resolução</Text>
+            <Text style={styles.botaoGrandeText}>Voltar</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
     );
   }
 
-  // Alterna modos
-  if (mode === "historico") {
-    return renderHistorico();
-  }
-  if (mode === "historicoDetalhe") {
-    return renderHistoricoDetalhe();
-  }
-  if (mode === "final") {
-    return renderFinal();
-  }
+  if (mode === "historico") return renderHistorico();
+  if (mode === "historicoDetalhe") return renderHistoricoDetalhe();
+  if (mode === "final") return renderFinal();
 
-  // Modo "resolvendo"
   const pergunta = perguntas[currentIndex];
-  if (!pergunta) {
-    // Se chegou aqui sem perguntas, ou terminou
-    return renderFinal();
-  }
-
   const feed = respostas[pergunta.idpergunta];
   const jaRespondeu2 = !!feed;
 
@@ -339,33 +306,24 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
       <Header />
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>Exercício</Text>
-
         <View style={styles.perguntaContainer}>
           <Text style={styles.perguntaText}>{pergunta.texto}</Text>
         </View>
-
         <View style={styles.alternativasContainer}>
           {pergunta.alternativas.map((alt) => {
-            const foiSelecionada = alternativaSelecionada === alt.idalternativa;
-            const foiUsada = feed && feed.resposta === alt.idalternativa;
-
+            const selecionada = alternativaSelecionada === alt.idalternativa;
+            const usada = feed && feed.resposta === alt.idalternativa;
             let estiloBotao = [styles.altButton];
-            if (jaRespondeu2 && foiUsada) {
-              if (feed.acertou) estiloBotao.push(styles.altCerta);
-              else estiloBotao.push(styles.altErrada);
-            } else if (!jaRespondeu2 && foiSelecionada) {
+            if (jaRespondeu2 && usada) {
+              estiloBotao.push(feed.acertou ? styles.altCerta : styles.altErrada);
+            } else if (!jaRespondeu2 && selecionada) {
               estiloBotao.push(styles.altSelecionada);
             }
-
             return (
               <TouchableOpacity
-                key={`alt-${alt.idalternativa}`}
+                key={alt.idalternativa}
                 style={estiloBotao}
-                onPress={() => {
-                  if (!jaRespondeu2) {
-                    setAlternativaSelecionada(alt.idalternativa);
-                  }
-                }}
+                onPress={() => handleSelecionarAlternativa(alt.idalternativa)}
                 disabled={jaRespondeu2}
               >
                 <Text style={styles.altText}>{alt.texto}</Text>
@@ -373,55 +331,27 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
             );
           })}
         </View>
-
-        {/* Botão Submeter */}
         {!jaRespondeu2 && (
-          <TouchableOpacity
-            style={styles.botaoSubmeter}
-            onPress={() => {
-              if (!pergunta || alternativaSelecionada === null) {
-                Alert.alert("Ops", "Selecione alguma alternativa antes de submeter.");
-                return;
-              }
-              const altCorreta = pergunta.alternativas.find((a) => a.correta);
-              const acertou = altCorreta && altCorreta.idalternativa === alternativaSelecionada;
-
-              setRespostas((prev) => ({
-                ...prev,
-                [pergunta.idpergunta]: {
-                  acertou,
-                  resposta: alternativaSelecionada,
-                },
-              }));
-            }}
-          >
+          <TouchableOpacity style={styles.botaoSubmeter} onPress={handleSubmeter}>
             <Text style={styles.botaoSubmeterText}>Submeter Resposta</Text>
           </TouchableOpacity>
         )}
-
-        {/* Se já respondeu => mostra explicação (agora também se acertou) */}
         {jaRespondeu2 && pergunta.explicacao && (
           <View style={styles.explicacaoContainer}>
             <Text style={styles.explicacaoTitle}>Explicação:</Text>
             <Text style={styles.explicacaoText}>{pergunta.explicacao}</Text>
           </View>
         )}
-
-        {/* Botão Próximo se já respondeu */}
         {jaRespondeu2 && (
           <TouchableOpacity style={styles.botaoProximo} onPress={handleProximo}>
             <Text style={styles.botaoProximoText}>Próximo Exercício</Text>
           </TouchableOpacity>
         )}
-
-        {/* Botão "Ver Exercícios Resolvidos" se já respondeu pelo menos 1 */}
         {Object.keys(respostas).length > 0 && (
-          <TouchableOpacity style={styles.botaoHistorico} onPress={() => setMode("historico")}>
+          <TouchableOpacity style={styles.botaoHistorico} onPress={verHistorico}>
             <Text style={styles.botaoHistoricoText}>Ver Exercícios Resolvidos</Text>
           </TouchableOpacity>
         )}
-
-        {/* Botão Sair */}
         <TouchableOpacity style={styles.botaoSair} onPress={sairResolucao}>
           <Text style={styles.botaoSairText}>Sair da Resolução</Text>
         </TouchableOpacity>
@@ -430,9 +360,6 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
   );
 }
 
-// -------------------------------------------
-// ESTILOS
-// -------------------------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -459,7 +386,6 @@ const styles = StyleSheet.create({
     color: "#666",
     textAlign: "center",
   },
-
   perguntaContainer: {
     backgroundColor: "#ddd",
     borderRadius: 10,
@@ -472,7 +398,6 @@ const styles = StyleSheet.create({
     color: "#333",
     textAlign: "center",
   },
-
   alternativasContainer: {
     marginBottom: 20,
   },
@@ -497,7 +422,6 @@ const styles = StyleSheet.create({
   altErrada: {
     backgroundColor: "#FF6347",
   },
-
   botaoSubmeter: {
     backgroundColor: "#28A745",
     borderRadius: 8,
@@ -510,7 +434,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-
   explicacaoContainer: {
     backgroundColor: "#f0f4ff",
     borderRadius: 8,
@@ -527,7 +450,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#444",
   },
-
   botaoProximo: {
     backgroundColor: "#007AFF",
     borderRadius: 8,
@@ -540,7 +462,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-
   botaoHistorico: {
     backgroundColor: "#888",
     borderRadius: 8,
@@ -553,7 +474,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-
   botaoSair: {
     backgroundColor: "#aaa",
     borderRadius: 8,
@@ -565,7 +485,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-
   cardHistorico: {
     backgroundColor: "#fff",
     borderRadius: 10,
@@ -595,21 +514,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
-
   botaoGrande: {
     backgroundColor: "#0056b3",
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
     marginBottom: 15,
-    width: "100%",
   },
   botaoGrandeText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
   },
-
   historicoDetalheInfo: {
     fontSize: 15,
     color: "#666",

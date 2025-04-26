@@ -1,13 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Provider as PaperProvider } from "react-native-paper";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Platform, Alert } from "react-native";
+import * as MediaLibrary from "expo-media-library";
 import { AuthProvider, useAuth } from "./context/AuthProvider";
 
 // Screens
 import PaginaInicial from "./screens/PaginaInicial";
-import PDFViewerScreen from "./screens/PDFViewerScreen.js";
+import PDFViewerScreen from "./screens/PDFViewerScreen";
 import ExerciciosScreen from "./screens/ExerciciosScreen";
 import DisciplinasScreen from "./screens/DisciplinasScreen";
 import MaterialScreen from "./screens/MaterialScreen";
@@ -30,6 +31,18 @@ LogBox.ignoreLogs([
 ]);
 
 const Stack = createStackNavigator();
+
+async function pedirPermissoesFicheiros() {
+  if (Platform.OS === "android") {
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permissão necessária",
+        "A aplicação precisa de permissão para aceder aos seus ficheiros e permitir uploads."
+      );
+    }
+  }
+}
 
 function AppNavigator() {
   const { user, loading } = useAuth();
@@ -78,6 +91,10 @@ function AppNavigator() {
 }
 
 const App = () => {
+  useEffect(() => {
+    pedirPermissoesFicheiros();
+  }, []);
+
   return (
     <AuthProvider>
       <PaperProvider>
