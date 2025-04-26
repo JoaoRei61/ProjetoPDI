@@ -1,7 +1,8 @@
-#IscaAcademy - App de Apoio aos Estudos
+# IscaAcademy
 
 
-🚀Funcionalidades
+# Funcionalidades
+
 📖 Gestão de Disciplinas e Matérias
 
 📝 Realização de Exercícios e  de um modo exame
@@ -13,7 +14,7 @@
 🏆 Sistema de Rankings e Pontuação
 
 
-🛠️ Tecnologias Utilizadas
+# Tecnologias Utilizadas
 React Native (Expo)
 
 Supabase (Base de Dados e Autenticação)
