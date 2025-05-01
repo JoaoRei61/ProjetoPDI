@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  ActivityIndicator,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -11,6 +10,8 @@ import {
 import supabase from "../supabaseconfig";
 import Header from "../componentes/header";
 import { useAuth } from "../context/AuthProvider";
+import LoadingScreen from "../screens/LoadingScreen";
+
 
 // Função para embaralhar array
 const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
@@ -384,7 +385,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
       ) : (
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />
+            <LoadingScreen onFinish={null} />
           ) : (
             <>
               {!quizFinalizado ? (

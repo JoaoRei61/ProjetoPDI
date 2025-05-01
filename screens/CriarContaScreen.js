@@ -11,9 +11,13 @@ import {
   Alert
 } from 'react-native';
 import supabase from '../supabaseconfig';
+import LoadingScreen from '../screens/LoadingScreen'; // nova linha 11
+
 
 const CriarContaScreen = ({ navigation }) => {
+  const [username, setUsername] = useState('');
   const [nome, setNome] = useState('');
+  const [apelido, setApelido] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
   const [palavrapasse, setPalavrapasse] = useState('');
@@ -21,6 +25,8 @@ const CriarContaScreen = ({ navigation }) => {
   const [cursoSelecionado, setCursoSelecionado] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [emailModalVisible, setEmailModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true); 
+
 
   // Buscar lista de cursos para exibir no Modal
   useEffect(() => {
@@ -30,8 +36,17 @@ const CriarContaScreen = ({ navigation }) => {
         .select('*');
       if (!error) setCursos(data);
     };
+  
     fetchCursos();
+  
+    // simular splash por 1 segundo
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  
+    return () => clearTimeout(timer);
   }, []);
+  
 
   // Validação simples dos campos
   const validarCampos = () => {
@@ -39,10 +54,19 @@ const CriarContaScreen = ({ navigation }) => {
       Alert.alert('Erro', 'Por favor, preencha o nome completo.');
       return false;
     }
+    if (!apelido.trim()) {
+      Alert.alert('Erro', 'Por favor, introduza um Apelido.');
+      return false;
+    }
+    
     if (!telefone.trim()) {
       Alert.alert('Erro', 'Por favor, insira o número de telemóvel.');
       return false;
     }
+    if (!username.trim()) {
+      Alert.alert('Erro', 'Por favor, introduza um username.');
+      return false;
+    }    
     if (!email.trim()) {
       Alert.alert('Erro', 'Por favor, introduza um email válido.');
       return false;
@@ -61,6 +85,8 @@ const CriarContaScreen = ({ navigation }) => {
   // Criação de conta + Inserção na tabela `utilizadores` (sem guardar `email`)
   const criarConta = async () => {
     if (!validarCampos()) return;
+
+    setLoading(true); // ativa loading antes de criar conta
 
     // 1) Criar usuário na autenticação do Supabase
     const { data: user, error } = await supabase.auth.signUp({
@@ -82,8 +108,11 @@ const CriarContaScreen = ({ navigation }) => {
         .insert([
           {
             id: userId,
+            username: username,
             nome: nome,
+            apelido:apelido,
             telefone: telefone,
+            email:email,
             tipo_conta: 'aluno',
             idcurso: cursoSelecionado,
           
@@ -98,8 +127,11 @@ const CriarContaScreen = ({ navigation }) => {
     }
 
     // 3) Exibir modal de confirmação de email
+    setLoading(false); // desativa loading após criar conta
     setEmailModalVisible(true);
   };
+
+  if (loading) return <LoadingScreen onFinish={null} />;
 
   return (
     <View style={styles.container}>
@@ -111,10 +143,24 @@ const CriarContaScreen = ({ navigation }) => {
 
       <TextInput 
         style={styles.input} 
-        placeholder="Nome Completo" 
+        placeholder="Nome" 
         value={nome} 
         onChangeText={setNome} 
       />
+      <TextInput 
+        style={styles.input} 
+        placeholder="Apelido" 
+        value={apelido} 
+        onChangeText={setApelido} 
+      />
+
+      <TextInput 
+        style={styles.input} 
+        placeholder="Username" 
+        value={username} 
+        onChangeText={setUsername} 
+      />
+
       <TextInput 
         style={styles.input} 
         placeholder="Nº de telemóvel" 

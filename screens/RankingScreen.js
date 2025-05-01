@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Animated,
   Easing,
 } from "react-native";
 import Header from "../componentes/header";
 import supabase from "../supabaseconfig";
+import LoadingScreen from "../screens/LoadingScreen";
 
 export default function RankingScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -33,16 +33,13 @@ export default function RankingScreen({ navigation }) {
 
   const fetchRankingGlobal = async () => {
     try {
-      setLoading(true);
-      setErrorMessage("");
-
-      // Precisamos da relationship rank -> utilizadores
-      // Exemplo: "utilizadores!inner(nome, apelido)"
+      setLoading(true); // Ativa o loading
+  
       const { data, error } = await supabase
         .from("rank")
         .select("idutilizador, pontos, utilizadores!inner(nome, apelido)")
         .order("pontos", { ascending: false });
-
+  
       if (error) {
         console.error("Erro ao buscar rank global:", error);
         setErrorMessage("Erro ao carregar ranking global.");
@@ -55,9 +52,9 @@ export default function RankingScreen({ navigation }) {
       console.error("Erro inesperado ao buscar ranking:", err);
       setErrorMessage("Erro ao carregar ranking global.");
     } finally {
-      setLoading(false);
+      setLoading(false); // Desativa o loading
     }
-  };
+  };  
 
   // Animação do pódio (top 3)
   const animatePodium = () => {
@@ -89,6 +86,8 @@ export default function RankingScreen({ navigation }) {
   // Top 3 para o pódio
   const top3 = ranking.slice(0, 3);
 
+  if (loading) return <LoadingScreen onFinish={null} />;
+
   // === RENDER ===
   return (
     <View style={styles.container}>
@@ -97,7 +96,7 @@ export default function RankingScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Ranking Global</Text>
 
-        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        {errorMessage ? <LoadingScreen onFinish={null} /> : null}
         {loading && <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />}
 
         {/* Pódio (top 3) */}

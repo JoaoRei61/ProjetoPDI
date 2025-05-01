@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 're
 import { Appbar, Button, Divider } from 'react-native-paper';
 import { useAuth } from '../context/AuthProvider';
 import Header from '../componentes/header';
+import LoadingScreen from "../screens/LoadingScreen";
+
 
 const MaterialScreen = ({ route, navigation }) => {
   if (!route || !route.params || !route.params.disciplinaId) {

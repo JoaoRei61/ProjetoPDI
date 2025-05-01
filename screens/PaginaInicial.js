@@ -6,6 +6,8 @@ import {
 import { useAuth } from '../context/AuthProvider';
 import Header from '../componentes/header';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingScreen from "../screens/LoadingScreen"; // nova linha 11
+
 
 const PaginaInicial = ({ navigation }) => {
   const { user, supabase } = useAuth();
@@ -20,38 +22,42 @@ const PaginaInicial = ({ navigation }) => {
   const [disciplinasPrimeiroSemestre, setDisciplinasPrimeiroSemestre] = useState([]);
   const [disciplinasSegundoSemestre, setDisciplinasSegundoSemestre] = useState([]);
 
+  const [loading, setLoading] = useState(true); // nova linha 24
+
+
   // -------------------------------------------------
   // A) Carregar dados do utilizador
   // -------------------------------------------------
   useEffect(() => {
     const fetchUtilizador = async () => {
       if (user) {
-        // Ver para debugging
-        console.log('ID do utilizador logado:', user.id);
-
-        // Ajuste: usando .maybeSingle() para não dar erro se não encontrar
+        setLoading(true); // ativa o loading
         const { data: userData, error } = await supabase
           .from('utilizadores')
           .select('idcurso, nome, telefone, tipo_conta')
-          .eq('id', user.id) // Certifique-se que a coluna é 'id'
+          .eq('id', user.id)
           .maybeSingle();
-
+  
         if (error) {
           console.log('Erro ao buscar utilizador:', error);
+          setLoading(false);
           return;
         }
-
+  
         if (!userData) {
           console.log('Nenhum utilizador encontrado para esse ID:', user.id);
-        } else {
-          console.log('Utilizador encontrado:', userData);
-          setNome(userData.nome);
-          setIdCurso(userData.idcurso);
+          setLoading(false);
+          return;
         }
+  
+        setNome(userData.nome);
+        setIdCurso(userData.idcurso);
+        setLoading(false); // desativa o loading
       }
     };
     fetchUtilizador();
   }, [user, supabase]);
+  
 
   // -------------------------------------------------
   // B) Carregar disciplinas quando anoSelecionado ou idCurso mudar
@@ -125,6 +131,8 @@ const PaginaInicial = ({ navigation }) => {
       useNativeDriver: true,
     }).start();
   };
+
+  if (loading) return <LoadingScreen onFinish={null} />;
 
   return (
     <SafeAreaView style={styles.container}>

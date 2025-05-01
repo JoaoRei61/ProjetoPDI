@@ -13,6 +13,8 @@ import { useNavigation } from "@react-navigation/native";
 import Header from "../componentes/header";
 import { useAuth } from "../context/AuthProvider";
 import supabase from "../supabaseconfig";
+import LoadingScreen from "../screens/LoadingScreen"; 
+
 
 export default function GerirContaScreen() {
   const navigation = useNavigation();
@@ -24,6 +26,8 @@ export default function GerirContaScreen() {
   const [telefone, setTelefone] = useState("");
   const [tipoConta, setTipoConta] = useState("");
   const [idCurso, setIdCurso] = useState(null);
+  const [loading, setLoading] = useState(true); 
+
 
   // Para exibir lista de cursos
   const [courses, setCourses] = useState([]);
@@ -44,16 +48,20 @@ export default function GerirContaScreen() {
   const [tempTelefone, setTempTelefone] = useState("");
 
   useEffect(() => {
-    if (user) {
-      // 1) Carregar o email diretamente do objeto user (auth.users)
-      setEmail(user.email ?? "");
-
-      // 2) Carregar dados adicionais da tabela "utilizadores"
-      fetchUtilizador();
-    }
-    // Buscar lista de cursos
-    fetchCourses();
+    const carregarDados = async () => {
+      if (user) {
+        // 1) Carregar o email diretamente do objeto user (auth.users)
+        setEmail(user.email ?? "");
+        // 2) Carregar dados adicionais da tabela "utilizadores"
+        await fetchUtilizador();
+      }
+      await fetchCourses();
+      setTimeout(() => setLoading(false), 1000); // simula splash por 1 segundo
+    };
+  
+    carregarDados();
   }, [user]);
+  
 
   // Busca dados do utilizador na tabela "utilizadores"
   const fetchUtilizador = async () => {
@@ -197,6 +205,8 @@ export default function GerirContaScreen() {
       setModalResetVisible(true);
     }
   };
+
+  if (loading) return <LoadingScreen onFinish={null} />;
 
   return (
     <View style={styles.container}>

@@ -4,12 +4,13 @@ import {
   StyleSheet,
   ScrollView,
   Text,
-  ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../context/AuthProvider";
 import supabase from "../supabaseconfig";
 import Header from "../componentes/header";
+import LoadingScreen from "../screens/LoadingScreen";
+
 
 export default function DisciplinasScreen({ route, navigation }) {
   const { iddisciplina } = route.params || {};
@@ -79,12 +80,7 @@ export default function DisciplinasScreen({ route, navigation }) {
       <Header navigation={navigation} />
 
       {loading ? (
-        <ActivityIndicator
-          animating={true}
-          size="large"
-          color="#6200ea"
-          style={styles.loader}
-        />
+        <LoadingScreen onFinish={null} />
       ) : errorMessage ? (
         <View style={{ marginTop: 50, alignItems: "center", padding: 20 }}>
           <Text style={styles.errorText}>{errorMessage}</Text>

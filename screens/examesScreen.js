@@ -5,12 +5,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { useAuth } from "../context/AuthProvider";
 import Header from "../componentes/header";
 import Slider from "@react-native-community/slider";
+import LoadingScreen from "../screens/LoadingScreen";
 
 export default function exameScreen({ route, navigation }) {
   const { supabase, user, loading } = useAuth();
@@ -269,12 +269,7 @@ export default function exameScreen({ route, navigation }) {
   // RENDER
   // ----------------------------------------------------------------------------
   if (loadingData) {
-    return (
-      <View style={styles.containerLoading}>
-        <Header />
-        <ActivityIndicator size="large" color="#0056b3" style={{ marginTop: 20 }} />
-      </View>
-    );
+    return <LoadingScreen onFinish={null} />;
   }
 
   return (

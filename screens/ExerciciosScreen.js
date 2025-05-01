@@ -5,16 +5,18 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
+
   Text,
 } from "react-native";
 import { Button } from "react-native-paper";
 import { useAuth } from "../context/AuthProvider";
 import Header from "../componentes/header";
+import LoadingScreen from "../screens/LoadingScreen";
 
 export default function ExerciciosScreen({ route, navigation }) {
   const { supabase, user, loading: authLoading } = useAuth();
   const { disciplinaPreSelecionada } = route.params || {};
+  const [materiaProgress, setMateriaProgress] = useState({});
 
   const [anoSelecionado, setAnoSelecionado] = useState(
     disciplinaPreSelecionada?.ano || null
@@ -32,6 +34,8 @@ export default function ExerciciosScreen({ route, navigation }) {
   const [userInfo, setUserInfo] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(true); 
+
 
   useEffect(() => {
     if (!user && !authLoading) {
@@ -67,7 +71,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   }, [anoSelecionado, semestreSelecionado, userInfo]);
 
   const carregarDisciplinas = async (ano, semestre) => {
-    setLoadingData(true);
+    setLoading(true); // ativa o loading
     setErrorMessage("");
     setDisciplinaSelecionada(null);
     setMaterias([]);
@@ -89,7 +93,7 @@ export default function ExerciciosScreen({ route, navigation }) {
     } catch {
       setErrorMessage("Erro ao carregar disciplinas.");
     } finally {
-      setLoadingData(false);
+      setLoading(false); // desativa o loading
     }
   };
 
@@ -143,6 +147,32 @@ export default function ExerciciosScreen({ route, navigation }) {
         .eq("iddisciplina", iddisciplina);
       if (error) throw error;
       setMaterias(data);
+  
+      // Carregar progresso de cada matéria
+      const progressObj = {};
+      for (const m of data) {
+        const { count: total = 0 } = await supabase
+          .from("perguntas")
+          .select("idpergunta", { head: true, count: "exact" })
+          .eq("idmateria", m.idmateria);
+  
+        const { count: resolved = 0 } = await supabase
+          .from("resolucao")
+          .select("idpergunta", { head: true, count: "exact" })
+          .eq("idutilizador", user.id)
+          .eq("idmateria", m.idmateria);
+  
+        const { count: correct = 0 } = await supabase
+          .from("resolucao")
+          .select("idpergunta", { head: true, count: "exact" })
+          .eq("idutilizador", user.id)
+          .eq("correta", true)
+          .eq("idmateria", m.idmateria);
+  
+        progressObj[m.idmateria] = { total, resolved, correct };
+      }
+      setMateriaProgress(progressObj);
+  
     } catch {
       setErrorMessage("Erro ao carregar matérias.");
     } finally {
@@ -177,12 +207,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   };
 
   if (loadingData || authLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Header />
-        <ActivityIndicator size="large" color="#0056b3" />
-      </View>
-    );
+    return <LoadingScreen onFinish={null} />;
   }
 
   return (
@@ -193,8 +218,9 @@ export default function ExerciciosScreen({ route, navigation }) {
           Selecione ano, semestre, disciplina e matéria
         </Text>
         {errorMessage ? (
-          <Text style={styles.errorMessage}>{errorMessage}</Text>
+          <LoadingScreen onFinish={null} />
         ) : null}
+        
 
         {!disciplinaPreSelecionada && (
           <>
@@ -304,24 +330,31 @@ export default function ExerciciosScreen({ route, navigation }) {
           <>
             <Text style={styles.subtitle}>4) Matéria(s)</Text>
             {materias.map((m) => {
-              const sel = materiasSelecionadas.includes(m.idmateria);
-              return (
-                <TouchableOpacity
-                  key={m.idmateria}
-                  style={[styles.materiaBtn, sel && styles.materiaBtnSelected]}
-                  onPress={() => toggleMateriaSelecionada(m.idmateria)}
-                >
-                  <Text
-                    style={[
-                      styles.materiaText,
-                      sel && styles.materiaTextSelected,
-                    ]}
-                  >
-                    {m.nome}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                const sel = materiasSelecionadas.includes(m.idmateria);
+                const { total = 0, resolved = 0, correct = 0 } =
+                materiaProgress[m.idmateria] || {};
+               const pctResolved = total ? (resolved / total) * 100 : 0;
+                const pctCorrect = total ? (correct / total) * 100 : 0;
+
+          return (
+            <TouchableOpacity
+              key={m.idmateria}
+              style={[styles.materiaBtn, sel && styles.materiaBtnSelected]}
+              onPress={() => toggleMateriaSelecionada(m.idmateria)}
+            >
+              <Text style={[styles.materiaText, sel && styles.materiaTextSelected]}>
+                {m.nome}
+              </Text>
+              <View style={styles.dualBarBg}>
+                <View style={[styles.dualBarResolved, { width: `${pctResolved}%` }]} />
+                <View style={[styles.dualBarCorrect, { width: `${pctCorrect}%` }]} />
+              </View>
+              <Text style={styles.progressLabel}>
+                {resolved}/{total} resolvidas, {correct}/{total} corretas
+              </Text>
+            </TouchableOpacity>
+          );
+          })}
           </>
         )}
       </ScrollView>

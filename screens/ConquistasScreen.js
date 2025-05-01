@@ -4,12 +4,12 @@ import {
   StyleSheet,
   ScrollView,
   Text,
-  ActivityIndicator,
   TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../context/AuthProvider";
 import supabase from "../supabaseconfig";
 import Header from "../componentes/header";
+import LoadingScreen from "../screens/LoadingScreen";
 
 /**
  * Tela de "Conquistas" em que:
@@ -22,7 +22,7 @@ export default function ConquistasScreen({ navigation }) {
   const { user } = useAuth();
 
   // Estados básicos
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // começa como true para mostrar Loading
   const [errorMessage, setErrorMessage] = useState("");
 
   // Guardamos o idcurso do user e o userId (para resolucao)
@@ -48,7 +48,6 @@ export default function ConquistasScreen({ navigation }) {
 
   const fetchUserAndCourse = async () => {
     try {
-      setLoading(true);
       setErrorMessage("");
 
       const {
@@ -81,7 +80,8 @@ export default function ConquistasScreen({ navigation }) {
       console.error("Erro ao buscar curso do user:", err);
       setErrorMessage("Erro ao obter dados do utilizador.");
     } finally {
-      setLoading(false);
+      // Espera 1s antes de terminar a Loadingscreen
+      setTimeout(() => setLoading(false), 1000);
     }
   };
 
@@ -229,6 +229,10 @@ export default function ConquistasScreen({ navigation }) {
   };
 
   // ============ RENDER ============ //
+  if (loading) {
+    return <LoadingScreen onFinish={null} />;
+  }
+
   return (
     <View style={styles.container}>
       <Header navigation={navigation} />
@@ -240,9 +244,8 @@ export default function ConquistasScreen({ navigation }) {
           <Text style={styles.disciplinaNome}>Conquistas</Text>
         </View>
 
-        {/* Mensagens de erro/loading */}
+        {/* Mensagens de erro */}
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
-        {loading && <ActivityIndicator size="large" color="#6200ea" style={styles.loader} />}
 
         {/* Se ainda não escolheu ANO, exibir "cards" para cada ano */}
         {!anoSelecionado && (
@@ -288,7 +291,6 @@ export default function ConquistasScreen({ navigation }) {
                   style={styles.cardButton}
                   onPress={() => {
                     setSemestreSelecionado(sem);
-                    // Assim que definirmos, o useEffect chamará buscarDisciplinas()
                   }}
                 >
                   <Text style={styles.cardButtonText}>
@@ -332,7 +334,6 @@ export default function ConquistasScreen({ navigation }) {
                       listaMat.map((mat) => (
                         <View key={mat.idmateria} style={styles.progressContainer}>
                           <Text style={styles.materiaText}>{mat.nome}</Text>
-                          {/* Barra de progresso */}
                           <View style={styles.progressBar}>
                             <View
                               style={[
@@ -351,11 +352,9 @@ export default function ConquistasScreen({ navigation }) {
                 );
               })
             ) : (
-              !loading && (
-                <Text style={styles.infoText}>
-                  Não foram encontradas disciplinas para este ano/semestre.
-                </Text>
-              )
+              <Text style={styles.infoText}>
+                Não foram encontradas disciplinas para este ano/semestre.
+              </Text>
             )}
 
             <TouchableOpacity
