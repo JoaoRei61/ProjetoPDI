@@ -1,3 +1,4 @@
+import 'react-native-reanimated'
 import React, { useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
@@ -9,7 +10,7 @@ import { AuthProvider, useAuth } from "./context/AuthProvider";
 import PaginaInicial from "./screens/PaginaInicial";
 import PDFViewerScreen from "./screens/PDFViewerScreen.js";
 import ExerciciosScreen from "./screens/ExerciciosScreen";
-import DisciplinasScreen from "./screens/DisciplinasScreen";
+import DisciplinasScreen from "./screens/DisciplinasScreen";  
 import MaterialScreen from "./screens/MaterialScreen";
 import examesScreen from "./screens/examesScreen";
 import ExamesPerguntasScreen from "./screens/ExamesPerguntasScreen";
@@ -22,6 +23,7 @@ import ResumosScreen from "./screens/ResumosScreen";
 import RankingScreen from "./screens/RankingScreen";
 import GerirContaScreen from "./screens/GerirConta";
 import SplashScreen from "./screens/SplashScreen";
+
 
 import { LogBox } from "react-native";
 LogBox.ignoreLogs([
