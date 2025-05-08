@@ -1,0 +1,11 @@
+/* Garante que o container pai ocupa a altura toda */
+.d-flex.full-height {
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* Zona do conteúdo à direita que pode dar scroll */
+  .main-content {
+    overflow-y: auto;
+    height: 100vh;
+  }

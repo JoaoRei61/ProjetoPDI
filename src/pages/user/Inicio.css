@@ -1,0 +1,92 @@
+/* Inicio.css */
+body {
+    font-family: Arial, sans-serif;
+  }
+  
+  .bg-light {
+    background-color: #f8f9fa !important;
+  }
+  
+  .text-danger {
+    color: #dc3545 !important;
+  }
+  
+  .text-primary {
+    color: #007bff !important;
+  }
+  
+  .carousel-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .cursor-pointer {
+    cursor: pointer;
+  }
+  
+  .shadow-sm {
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .border-0 {
+    border: none !important;
+  }
+  
+  .rounded-3 {
+    border-radius: 12px !important;
+  }
+  
+  .bg-secondary {
+    background-color: #6c757d !important;
+  }
+  
+  .text-white {
+    color: #fff !important;
+  }
+  
+  .card {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .card:hover {
+    transform: scale(1.05);
+  }
+  
+  .dropdown-toggle {
+    font-size: 1.2rem;
+    font-weight: bold;
+  }
+  
+  h1, h2 {
+    font-weight: bold;
+  }
+  
+  .me-2 {
+    margin-right: 8px;
+  }
+  
+  .p-3 {
+    padding: 1rem;
+  }
+
+  .active-btn {
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0, 86, 179, 0.5);
+  }

@@ -1,0 +1,52 @@
+.leaderboard-podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 2rem;
+    text-align: center;
+  }
+  
+  .podium-slot {
+    position: relative;
+    padding: 1rem;
+    border-radius: 12px;
+    width: 120px;
+    background: #f7f7f7;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  }
+  
+  .profile-img img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid white;
+    object-fit: cover;
+    margin-bottom: 0.5rem;
+  }
+  
+  .slot-1 {
+    transform: translateY(-20px);
+  }
+  
+  .slot-2 {
+    transform: translateY(-5px);
+  }
+  
+  .slot-3 {
+    transform: translateY(10px);
+  }
+  
+  .medal {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    font-weight: bold;
+    color: white;
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  

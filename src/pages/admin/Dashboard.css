@@ -1,0 +1,89 @@
+.dashboard {
+    background-color: #0f172a;
+    min-height: 100vh;
+    padding: 2rem;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.dashboard-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 2rem;
+    color: #fff;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dashboard-card {
+    background-color: #1e293b;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.dashboard-card.wide {
+    grid-column: span 2;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.icon-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.card-icon {
+    font-size: 2rem;
+}
+
+.card-icon.blue {
+    color: #007bff;
+}
+.card-icon.green {
+    color: #28a745;
+}
+.card-icon.yellow {
+    color: #ffc107;
+}
+
+.card-label {
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.card-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.user-breakdown {
+    list-style: none;
+    padding-left: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.badge {
+    background-color: #198754;
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+}
