@@ -54,7 +54,7 @@ export default function DisciplinasScreen({ route, navigation }) {
 
   // === Funções de clique nos botões coloridos ===
   const irParaExercicios = () => {
-    navigation.navigate("ExerciciosScreen", { disciplinaPreSelecionada: disciplina });
+    navigation.navigate("Exercicios", { disciplinaPreSelecionada: disciplina });
   };
 
   // Agora, ao clicar em "Modo Exame", vai para a rota "Exames"

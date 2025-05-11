@@ -5,13 +5,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Image,
   Animated,
 } from "react-native";
 import supabase from "../supabaseconfig";
 import Header from "../componentes/header";
 import { useAuth } from "../context/AuthProvider";
 import LoadingScreen from "../screens/LoadingScreen";
-
 
 // Função para embaralhar array
 const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
@@ -20,25 +20,16 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
   const { selectedMaterias, numPerguntas, iddisciplina } = route.params || {};
   const { user } = useAuth();
 
-  // Guarda o ID do registro em "utilizadores" (coluna "id")
   const [idUtilizador, setIdUtilizador] = useState(null);
-
-  // Estados do quiz
   const [perguntas, setPerguntas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [respostasSelecionadas, setRespostasSelecionadas] = useState({});
   const [quizFinalizado, setQuizFinalizado] = useState(false);
-
-  // Exibição de resultado
   const [resultado, setResultado] = useState(null);
   const [mensagemResultado, setMensagemResultado] = useState("");
   const [pontos, setPontos] = useState(null);
-
-  // Controle da pergunta atual
   const [perguntaAtual, setPerguntaAtual] = useState(0);
   const [mostrarVisualizacao, setMostrarVisualizacao] = useState(false);
-
-  // Animação de fade
   const fadeAnim = useState(new Animated.Value(0))[0];
 
   // 1) Buscar na tabela "utilizadores" o registro cujo "id" corresponde a user.id
@@ -65,7 +56,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     fetchIdUtilizador();
   }, [user]);
 
-  // 2) Buscar perguntas
+  // 2) Buscar perguntas filtradas por tipo_pergunta = "EM"
   useEffect(() => {
     const fetchPerguntas = async () => {
       setLoading(true);
@@ -73,12 +64,12 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         .from("perguntas")
         .select("*, alternativas(*)")
         .in("idmateria", selectedMaterias)
-        .limit(100);
+        .eq("tipo_pergunta", "EM")  // Filtrando apenas as perguntas do tipo "EM"
+        .limit(numPerguntas);
 
       if (error) {
         console.error("Erro ao buscar perguntas:", error);
       } else if (data?.length) {
-        // Seleciona perguntas aleatórias
         const perguntasAleatorias = shuffleArray(data).slice(0, numPerguntas);
         perguntasAleatorias.forEach((pergunta) => {
           pergunta.alternativas = shuffleArray(pergunta.alternativas);
@@ -127,13 +118,10 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
       }
     });
 
-    // Porcentagem de acerto
     const porcentagem = ((respostasCorretas / perguntas.length) * 100).toFixed(2);
     setQuizFinalizado(true);
     setResultado(porcentagem);
 
-    // Cálculo da pontuação pela fórmula:
-    //     pontuacao = (acertos / resolvidos) * (acertos + resolvidos)
     const acertos = respostasCorretas;
     const resolvidos = perguntas.length;
     const pontuacaoFormula = (acertos / resolvidos) * (acertos + resolvidos);
@@ -141,7 +129,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
 
     definirMensagemResultado(porcentagem);
 
-    // Animação de fade
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
@@ -152,7 +139,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     try {
       const numericIdDisc = iddisciplina ? parseInt(iddisciplina, 10) : null;
 
-      // Cria um novo registro em "testes"
       const { data: testeInserido, error: testeErro } = await supabase
         .from("testes")
         .insert([
@@ -161,7 +147,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
             pontuacao: parseFloat(pontuacaoFormula),
             iddisciplina: numericIdDisc,
             idutilizador: idUtilizador || null,
-           
           },
         ])
         .select()
@@ -172,17 +157,10 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         return;
       }
 
-      if (!testeInserido) {
-        console.log("Não foi possível criar o teste, dado nulo.");
-        return;
-      }
-
-      // Resgatamos o idteste que acabou de ser criado
       const idteste = testeInserido.idteste;
 
       // 3.2) Inserir perguntas usadas no teste em "perguntas_teste"
       const listaPerguntasTeste = perguntas.map((pergunta) => {
-        // Verifica se acertou ou não a pergunta
         const correta = respondida_corretamentePergunta(pergunta);
 
         return {
@@ -203,107 +181,8 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
     } catch (e) {
       console.error("Erro inesperado ao salvar teste:", e);
     }
-
-    // 3.3) Atualizar ou inserir pontuação total do usuário na tabela "rank"
-    try {
-      // Verifica se o usuário já existe na tabela "rank"
-      const { data: rankRow, error: rankFetchError } = await supabase
-        .from("rank")
-        .select("idutilizador, pontos")
-        .eq("idutilizador", idUtilizador)
-        .maybeSingle();
-
-      if (rankFetchError) {
-        console.error("Erro ao buscar rank:", rankFetchError);
-      } else if (rankRow) {
-        // Se já existir, soma a nova pontuação (decimais permitidos)
-        const novaPontuacao =
-          parseFloat(rankRow.pontos) + parseFloat(pontuacaoFormula);
-
-        const { error: rankUpdateError } = await supabase
-          .from("rank")
-          .update({ pontos: novaPontuacao })
-          .eq("idutilizador", idUtilizador);
-
-        if (rankUpdateError) {
-          console.error("Erro ao atualizar rank:", rankUpdateError);
-        }
-      } else {
-        // Se não existir, cria um novo registro
-        const { error: rankInsertError } = await supabase
-          .from("rank")
-          .insert({
-            idutilizador: idUtilizador,
-            pontos: parseFloat(pontuacaoFormula),
-          });
-
-        if (rankInsertError) {
-          console.error("Erro ao inserir no rank:", rankInsertError);
-        }
-      }
-    } catch (err) {
-      console.error("Erro inesperado ao gerenciar rank:", err);
-    }
-
-    // 3.4) Adicionar/atualizar cada pergunta respondida na tabela "resolucao"
-    try {
-      for (const pergunta of perguntas) {
-        const acertou = respondida_corretamentePergunta(pergunta);
-        const idPergunta = pergunta.idpergunta;
-        const idMateria = pergunta.idmateria;
-
-        // Verifica se já existe um registro do user + pergunta
-        const { data: rankPessoalRow, error: fetchRankPessoalError } = await supabase
-          .from("resolucao")
-          .select("idutilizador, idpergunta, correta")
-          .eq("idutilizador", idUtilizador)
-          .eq("idpergunta", idPergunta)
-          .maybeSingle();
-
-        if (fetchRankPessoalError) {
-          console.error("Erro ao buscar resolucao:", fetchRankPessoalError);
-          continue; // pula para a próxima pergunta
-        }
-
-        // Se não existe, insere
-        if (!rankPessoalRow) {
-          // Insere o registro com "correta" = true/false de acordo com a resposta
-          const { error: insertRankPessoalError } = await supabase
-            .from("resolucao")
-            .insert({
-              idutilizador: idUtilizador,
-              idpergunta: idPergunta,
-              idmateria: idMateria,
-              correta: acertou,
-            });
-
-          if (insertRankPessoalError) {
-            console.error("Erro ao inserir em resolucao:", insertRankPessoalError);
-          }
-        } else {
-          // Se já existe e o user acertou agora -> atualiza para correta = true
-          if (acertou && !rankPessoalRow.correta) {
-            // Só atualiza se estava false e agora é true
-            const { error: updateRankPessoalError } = await supabase
-              .from("resolucao")
-              .update({ correta: true })
-              .eq("idutilizador", idUtilizador)
-              .eq("idpergunta", idPergunta);
-
-            if (updateRankPessoalError) {
-              console.error("Erro ao atualizar resolucao:", updateRankPessoalError);
-            }
-          }
-          // Se já existe e o user errou novamente, não altera nada:
-          // (fica correto se já estava true, ou fica false se já estava false)
-        }
-      }
-    } catch (err) {
-      console.error("Erro inesperado ao gerenciar resolucao:", err);
-    }
   };
 
-  // Define mensagem com base na % de acerto
   const definirMensagemResultado = (nota) => {
     const notaNum = parseFloat(nota);
     if (notaNum >= 90) {
@@ -341,6 +220,17 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
               </Text>
               <View style={{ marginTop: 10 }} />
 
+              {/* Exibindo a imagem dentro da div correta */}
+              {pergunta.enunciado ? (
+                <Image
+                  source={{ uri: pergunta.enunciado }} // Exibir imagem do Cloudinary
+                  style={styles.imagem}
+                  resizeMode="contain"
+                />
+              ) : (
+                <Text style={styles.finalPerguntaTexto}>{pergunta.texto}</Text>
+              )}
+
               {pergunta.alternativas.map((alternativa) => {
                 const selecionada =
                   respostaSelecionada === alternativa.idalternativa;
@@ -357,7 +247,6 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                 );
               })}
 
-              {/* Se errou e há explicação, exibe abaixo */}
               {!acertou && pergunta.explicacao && respostaSelecionada && (
                 <View style={styles.finalExplicacaoContainer}>
                   <Text style={styles.explicacaoTextoFinal}>
@@ -396,25 +285,30 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
 
                   <View style={styles.perguntaContainer}>
                     <Text style={styles.perguntaText}>
+                      {/* Exibindo a imagem dentro da pergunta */}
+                  {perguntas[perguntaAtual]?.enunciado ? (
+                    <Image
+                      source={{ uri: perguntas[perguntaAtual]?.enunciado }}
+                      style={styles.imagem}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <Text style={styles.perguntaText}>
                       {perguntas[perguntaAtual]?.texto}
+                    </Text>
+                  )}
+
                     </Text>
                   </View>
 
+                  
                   <View style={styles.respostasContainer}>
                     {perguntas[perguntaAtual]?.alternativas.map((alternativa) => (
                       <TouchableOpacity
                         key={`alt-${alternativa.idalternativa}`}
-                        style={[
-                          styles.alternativaButton,
-                          respostasSelecionadas[
-                            perguntas[perguntaAtual]?.idpergunta
-                          ] === alternativa.idalternativa && styles.selectedAnswer,
-                        ]}
+                        style={[styles.alternativaButton, respostasSelecionadas[perguntas[perguntaAtual]?.idpergunta] === alternativa.idalternativa && styles.selectedAnswer]}
                         onPress={() =>
-                          handleRespostaSelecionada(
-                            perguntas[perguntaAtual]?.idpergunta,
-                            alternativa.idalternativa
-                          )
+                          handleRespostaSelecionada(perguntas[perguntaAtual]?.idpergunta, alternativa.idalternativa)
                         }
                         disabled={quizFinalizado}
                       >
@@ -566,6 +460,13 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  imagem: {
+    width: "90%",
+    height: 200,
+    borderRadius: 10,
+    marginVertical: 20,
+    alignSelf: "center",
   },
   // Tela Final
   scrollContainerFinal: { padding: 16, paddingBottom: 50 },

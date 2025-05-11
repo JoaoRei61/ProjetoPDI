@@ -12,7 +12,7 @@ import Header from "../componentes/header";
 import Slider from "@react-native-community/slider";
 import LoadingScreen from "../screens/LoadingScreen";
 
-export default function exameScreen({ route, navigation }) {
+export default function ExameScreen({ route, navigation }) {
   const { supabase, user, loading } = useAuth();
 
   // Se vier disciplina do param, podes usá-la diretamente

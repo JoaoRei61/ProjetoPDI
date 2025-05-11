@@ -200,7 +200,7 @@ export default function ExerciciosScreen({ route, navigation }) {
       Alert.alert("Selecione pelo menos uma matéria!");
       return;
     }
-    navigation.navigate("ExerciciosPerguntasScreen", {
+    navigation.navigate("ExerciciosPerguntas", {
       selectedMaterias: materiasSelecionadas,
       iddisciplina: disciplinaSelecionada.iddisciplina,
     });
