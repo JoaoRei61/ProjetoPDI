@@ -23,4 +23,4 @@ Cloudinary (Armazenamento de Imagens)
 
 
 # Clonar o repositório
-git clone https://github.com/teu-username/studymate.git
+git clone https://github.com/JoaoRei61/ProjetoPDI/tree/mobile
