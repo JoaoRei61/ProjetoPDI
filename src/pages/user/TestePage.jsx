@@ -8,7 +8,7 @@ const TestePage = () => {
   const {
     materiasSelecionadas,
     quantidadeExercicios,
-    disciplina // este é o iddisciplina
+    disciplina
   } = location.state;
 
   const [perguntas, setPerguntas] = useState([]);
@@ -16,6 +16,7 @@ const TestePage = () => {
   const [tempoRestante, setTempoRestante] = useState(0);
   const [submetido, setSubmetido] = useState(false);
   const [acertos, setAcertos] = useState(0);
+  const [pontuacao, setPontuacao] = useState(0);
   const [indexAtual, setIndexAtual] = useState(0);
 
   useEffect(() => {
@@ -51,6 +52,11 @@ const TestePage = () => {
       }
 
       todasPerguntas = todasPerguntas.sort(() => 0.5 - Math.random());
+
+      if (todasPerguntas.length < quantidadeExercicios) {
+        alert(`Apenas foram encontradas ${todasPerguntas.length} perguntas, mas pediste ${quantidadeExercicios}. O exame continuará com as disponíveis.`);
+      }
+
       setPerguntas(todasPerguntas);
       setTempoRestante(todasPerguntas.length * 6 * 60);
     };
@@ -96,28 +102,28 @@ const TestePage = () => {
     });
 
     setAcertos(corretas);
-    setSubmetido(true);
 
     const resolvidas = perguntas.length;
-    const pontuacao =
-      resolvidas > 0 ? (corretas / resolvidas) * (corretas + resolvidas) : 0;
+    const pontuacaoCalculada = resolvidas > 0
+      ? parseFloat(((corretas / resolvidas) * (corretas + resolvidas)).toFixed(2))
+      : 0;
+    setPontuacao(pontuacaoCalculada);
+    setSubmetido(true);
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Inserir o teste na tabela "testes"
     await supabase.from("testes").insert([
       {
         idutilizador: user.id,
         iddisciplina: disciplina,
-        pontuacao: pontuacao,
+        pontuacao: pontuacaoCalculada,
         data_criacao: new Date().toISOString(),
       },
     ]);
 
-    // Atualizar ou inserir na tabela "rank"
     const { data: existente } = await supabase
       .from("rank")
       .select("pontos")
@@ -125,7 +131,7 @@ const TestePage = () => {
       .single();
 
     if (existente) {
-      const novaPontuacao = existente.pontos + pontuacao;
+      const novaPontuacao = existente.pontos + pontuacaoCalculada;
       await supabase
         .from("rank")
         .update({ pontos: novaPontuacao })
@@ -133,7 +139,7 @@ const TestePage = () => {
     } else {
       await supabase
         .from("rank")
-        .insert([{ idutilizador: user.id, pontos: pontuacao }]);
+        .insert([{ idutilizador: user.id, pontos: pontuacaoCalculada }]);
     }
   };
 
@@ -152,7 +158,7 @@ const TestePage = () => {
       {!submetido ? (
         perguntas.length > 0 && (
           <>
-            <Card className="p-3 mb-4 border-0" style={{ boxShadow: "none" }}>
+            <Card className="p-3 mb-4 border-0">
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-center mb-2">
                   <h5>
@@ -172,14 +178,14 @@ const TestePage = () => {
                 {perguntaAtual.alternativas?.map((alt, idx) => {
                   const selecionada =
                     respostas[perguntaAtual.idpergunta] === alt.texto;
-                  let classe = "border p-2 mb-2 rounded w-100 ";
-                  if (selecionada) classe += "bg-primary text-white";
+                  let classe = "border p-2 mb-2 rounded w-100";
+                  if (selecionada) classe += " bg-primary text-white";
 
                   return (
                     <div
                       key={idx}
                       className={classe}
-                      style={{ cursor: "pointer" }}
+                      style={{ cursor: "pointer", userSelect: "none" }}
                       onClick={() =>
                         registarResposta(perguntaAtual.idpergunta, alt.texto)
                       }
@@ -217,7 +223,8 @@ const TestePage = () => {
       ) : (
         <>
           <Alert variant="success" className="text-center fs-5 mt-3">
-            Acertaste <strong>{acertos}</strong> pergunta(s) de escolha múltipla!
+            Acertaste <strong>{acertos}</strong> pergunta(s) de escolha múltipla!<br />
+            Ganhaste <strong>{pontuacao}</strong> ponto(s).
           </Alert>
 
           {perguntas.map((p, i) => {
@@ -228,7 +235,6 @@ const TestePage = () => {
               <Card
                 key={p.idpergunta}
                 className="p-3 mb-4 border-0"
-                style={{ boxShadow: "none" }}
               >
                 <Card.Body>
                   <h5>
@@ -244,11 +250,11 @@ const TestePage = () => {
                   )}
 
                   {p.alternativas?.map((alt, idx) => {
-                    let classe = "border p-2 mb-2 rounded w-100 ";
+                    let classe = "border p-2 mb-2 rounded w-100";
                     if (alt.texto === correta) {
-                      classe += "bg-success text-white";
+                      classe += " bg-success text-white";
                     } else if (alt.texto === selecionada) {
-                      classe += "bg-danger text-white";
+                      classe += " bg-danger text-white";
                     }
 
                     return <div key={idx} className={classe}>{alt.texto}</div>;
@@ -257,6 +263,12 @@ const TestePage = () => {
               </Card>
             );
           })}
+
+          <div className="text-center mt-4">
+            <Button variant="primary" onClick={() => window.history.back()}>
+              Voltar ao Modo Exame
+            </Button>
+          </div>
         </>
       )}
     </Container>
