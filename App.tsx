@@ -31,6 +31,7 @@ import ConquistasScreen from './screens/ConquistasScreen';
 import ResumosScreen from './screens/ResumosScreen';
 import RankingScreen from './screens/RankingScreen';
 import SplashScreen from './screens/SplashScreen';
+import GerirContaScreen from './screens/GerirConta';
 
 const Stack = createStackNavigator();
 
@@ -59,12 +60,13 @@ function AppNavigator() {
           <Stack.Screen name="Disciplinas" component={DisciplinasScreen} />
           <Stack.Screen name="Material" component={MaterialScreen} />
           <Stack.Screen name="Exames" component={ExamesScreen} />
-          <Stack.Screen name="ExamesPerguntas" component={ExamesPerguntasScreen} />
-          <Stack.Screen name="ExerciciosScreen" component={ExerciciosScreen} />
-          <Stack.Screen name="ExerciciosPerguntasScreen" component={ExerciciosPerguntasScreen} />
+          <Stack.Screen name="ExamesPerguntasScreen" component={ExamesPerguntasScreen} />
+          <Stack.Screen name="ExerciciosScreen" component={ExerciciosScreen} />  
+          <Stack.Screen name="ExerciciosPerguntas" component={ExerciciosPerguntasScreen} />
           <Stack.Screen name="Conquistas" component={ConquistasScreen} />
           <Stack.Screen name="Resumos" component={ResumosScreen} />
           <Stack.Screen name="Ranking" component={RankingScreen} />
+          <Stack.Screen name="GerirConta" component={GerirContaScreen} />
         </>
       ) : (
         <>
