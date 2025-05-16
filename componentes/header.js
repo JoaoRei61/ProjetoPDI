@@ -293,6 +293,7 @@ const styles = StyleSheet.create({
     top: 80,
     right: 20,
   },
+  
 });
 
 export default Header;

@@ -385,9 +385,9 @@ const styles = StyleSheet.create({
   respostasContainer: {
     width: "100%",
     alignItems: "center",
-    marginTop: "10%",
-    marginBottom: "10%",
-    height: "30%",
+    marginTop: 16,
+    marginBottom: 16,
+    gap: 10,
   },
   alternativaButton: {
     width: "90%",

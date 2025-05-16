@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthProvider';
 import Header from '../componentes/header';
 import { Ionicons } from '@expo/vector-icons';
 import LoadingScreen from "../screens/LoadingScreen"; // nova linha 11
+import PaginaInicial1 from './PaginaInicial1';
 
 
 const PaginaInicial = ({ navigation }) => {
@@ -14,7 +15,7 @@ const PaginaInicial = ({ navigation }) => {
 
   const [nome, setNome] = useState('');
   const [idCurso, setIdCurso] = useState(null);
-
+  const [tipoConta, setTipoConta] = useState(null);
   const [anoSelecionado, setAnoSelecionado] = useState(1);
   const [mostrarAnos, setMostrarAnos] = useState(false);
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -52,6 +53,7 @@ const PaginaInicial = ({ navigation }) => {
   
         setNome(userData.nome);
         setIdCurso(userData.idcurso);
+        setTipoConta(userData.tipo_conta);  
         setLoading(false); // desativa o loading
       }
     };
@@ -133,6 +135,10 @@ const PaginaInicial = ({ navigation }) => {
   };
 
   if (loading) return <LoadingScreen onFinish={null} />;
+
+  if (tipoConta === 'docente') {
+    return <PaginaInicial1 navigation={navigation} />;
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -274,140 +280,166 @@ const PaginaInicial = ({ navigation }) => {
 // Estilos
 // -------------------------------------------------
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f9f9' },
-  contentContainer: { paddingHorizontal: 20 },
+  container: {
+    flex: 1,
+    backgroundColor: '#eef2f5',
+  },
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 60,
+  },
   welcome: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#d32f2f',
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1a237e',
     textAlign: 'center',
-    marginVertical: 20,
+    marginVertical: 30,
   },
   anoContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 15,
-  },
-  anosDropdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 15,
+    marginBottom: 10,
   },
   dropdownBotao: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0056b3',
+    backgroundColor: '#3949ab',
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#004399',
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '80%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-    width: '70%',
-    alignSelf: 'center',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   dropdownTexto: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '600',
     color: '#fff',
+  },
+  anosDropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 25,
+  },
+  ano: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#c5cae9',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  anoSelecionado: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#3f51b5',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  anoTexto: {
+    color: '#fff',
+    fontWeight: '600',
   },
   anoBadge: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: '#e3f2fd',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
+    backgroundColor: '#d1c4e9',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
     marginBottom: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: 2,
     elevation: 2,
   },
   anoBadgeTexto: {
-    color: '#0d47a1',
-    fontSize: 15,
+    color: '#1a237e',
+    fontSize: 16,
     fontWeight: '600',
   },
-  ano: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#ccc',
-  },
-  anoSelecionado: {
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: '#0056b3',
-  },
-  anoTexto: {
-    color: '#fff',
-  },
   semestreTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginVertical: 30,
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    textAlign: 'left',
+    color: '#283593',
+    marginBottom: 10,
+    marginTop: 30,
   },
   disciplinaButton: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    marginHorizontal: 12,
-    elevation: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginHorizontal: 10,
+    minWidth: 130,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 120,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    backdropFilter: 'blur(10px)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
   },
   disciplinaText: {
     fontSize: 16,
-    color: '#333',
     fontWeight: '600',
+    color: '#212121',
+    textAlign: 'center',
   },
   empty: {
     fontSize: 14,
-    color: '#aaa',
-    marginVertical: 15,
+    color: '#999',
+    marginVertical: 20,
+    textAlign: 'center',
   },
   separator: {
-    borderBottomColor: '#ddd',
-    borderBottomWidth: 1,
-    marginVertical: 30,
+    height: 1,
+    backgroundColor: '#bbb',
+    marginVertical: 40,
+    opacity: 0.3,
   },
   acessoRapidoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 30,
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1a237e',
+    textAlign: 'left',
+    marginBottom: 20,
   },
   acessoRapidoContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginVertical: 30,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
   },
   botaoAcessoRapido: {
     alignItems: 'center',
-    backgroundColor: '#0056b3',
-    padding: 10,
-    borderRadius: 10,
-    width: 60,
+    backgroundColor: '#3949ab',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    width: 90,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
   },
   botaoTexto: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
-    marginTop: 5,
+    marginTop: 8,
+    fontWeight: '500',
   },
 });
+
 
 export default PaginaInicial;

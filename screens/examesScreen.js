@@ -258,7 +258,7 @@ export default function ExameScreen({ route, navigation }) {
     }
 
     // Passamos iddisciplina e numPerguntas para a próxima tela
-    navigation.navigate("ExamesPerguntasScreen", {
+    navigation.navigate("ExamesPerguntas", {
       selectedMaterias: materiasSelecionadas,
       numPerguntas: parseInt(numPerguntas, 10),
       iddisciplina: disciplinaSelecionada.iddisciplina,
