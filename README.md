@@ -36,4 +36,19 @@ Estatisitica inferencial
 
 Fiscalidade (Escolhas multiplas para o modo exame)
 
+# Contas
+
+Para aceder a conta de docente pode usar essa:
+
+Email: ana.nunez0317@gmail.com
+
+Palavra-Passe: bb0wda5r
+
+Para a conta de aluno é so registar-se (o contacto com a supabase até ele começar a guardar dados na cache pode demorar)
+
+Caso queira fazer logo o login tem essa conta:
+
+Email: Julio@gmail.com
+
+Palavra-Passe: 123456789
 
