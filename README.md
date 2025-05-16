@@ -29,8 +29,11 @@ npx expo start --tunnel -c
 
 # Disciplinas que estão com conteudos no momento
 Probabilidade e Estatistica(Escolha multipla, perguntas de desenvolvimente e resumos)
-Analise Matemática 2 
+
+Analise Matemática 2
+
 Estatisitica inferencial
+
 Fiscalidade (Escolhas multiplas para o modo exame)
 
 
