@@ -6,7 +6,7 @@ import supabase from "../../helper/supabaseconfig";
 const ResolverQuestoes = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { idmateria, nomeMateria } = state;
+  const { idmateria, nomeMateria, tipo = "todas" } = state;
 
   const [perguntas, setPerguntas] = useState([]);
   const [indexAtual, setIndexAtual] = useState(0);
@@ -15,20 +15,55 @@ const ResolverQuestoes = () => {
 
   useEffect(() => {
     const fetchPerguntas = async () => {
-      const { data, error } = await supabase
+      const { data: user } = await supabase.auth.getUser();
+      if (!user?.user) return;
+
+      let query = supabase
         .from("perguntas")
         .select("*, alternativas(idalternativa, texto, correta)")
         .eq("idmateria", idmateria);
 
+      if (tipo === "erradas") {
+        const { data: erradas } = await supabase
+          .from("resolucao")
+          .select("idpergunta")
+          .eq("idutilizador", user.user.id)
+          .eq("correta", false);
+
+        const ids = erradas?.map(r => r.idpergunta) || [];
+        if (ids.length > 0) {
+          query = query.in("idpergunta", ids);
+        } else {
+          setPerguntas([]);
+          return;
+        }
+      }
+
+      if (tipo === "nao_resolvidas") {
+        const { data: resolvidas } = await supabase
+          .from("resolucao")
+          .select("idpergunta")
+          .eq("idutilizador", user.user.id);
+
+        const ids = resolvidas?.map(r => r.idpergunta) || [];
+
+        if (ids.length > 0) {
+          // Corrigido: usar string formatada com parêntesis
+          query = query.filter("idpergunta", "not.in", `(${ids.join(",")})`);
+        }
+        // Caso contrário, manter como está — devolve todas
+      }
+
+      const { data, error } = await query;
       if (error) console.error("Erro ao buscar perguntas:", error);
       setPerguntas(data || []);
     };
 
     fetchPerguntas();
-  }, [idmateria]);
+  }, [idmateria, tipo]);
 
   const gravarResolucao = async (correta) => {
-    const { data: user, error: userError } = await supabase.auth.getUser();
+    const { data: user } = await supabase.auth.getUser();
     if (!user?.user) {
       console.error("Utilizador não autenticado — não pode gravar resolução");
       return;
@@ -38,21 +73,16 @@ const ResolverQuestoes = () => {
     const idpergunta = perguntaAtual.idpergunta;
 
     try {
-      const { data: resolucaoExistente, error: fetchError } = await supabase
-      .from("resolucao")
-      .select("*")
-      .eq("idutilizador", idutilizador)
-      .eq("idpergunta", idpergunta)
-      .limit(1)
-      .maybeSingle();
-    
-    if (fetchError) {
-      console.error("Erro ao verificar resolução existente:", fetchError);
-      return;
-    }
-    
+      const { data: resolucaoExistente } = await supabase
+        .from("resolucao")
+        .select("*")
+        .eq("idutilizador", idutilizador)
+        .eq("idpergunta", idpergunta)
+        .limit(1)
+        .maybeSingle();
+
       if (!resolucaoExistente) {
-        const { error: insertError } = await supabase.from("resolucao").insert([
+        await supabase.from("resolucao").insert([
           {
             idutilizador,
             idpergunta,
@@ -60,24 +90,12 @@ const ResolverQuestoes = () => {
             correta: correta,
           },
         ]);
-        if (insertError) {
-          console.error("Erro ao inserir nova resolução:", insertError);
-        } else {
-          console.log("Resolução inserida com sucesso");
-        }
       } else if (!resolucaoExistente.correta && correta) {
-        const { error: updateError } = await supabase
+        await supabase
           .from("resolucao")
           .update({ correta: true })
           .eq("idutilizador", idutilizador)
           .eq("idpergunta", idpergunta);
-        if (updateError) {
-          console.error("Erro ao atualizar resolução:", updateError);
-        } else {
-          console.log("Resolução atualizada para correta com sucesso");
-        }
-      } else {
-        console.log("Resolução já está correta — não foi necessário atualizar");
       }
     } catch (err) {
       console.error("Erro geral ao gravar resolução:", err);

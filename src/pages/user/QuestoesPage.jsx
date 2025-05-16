@@ -8,6 +8,7 @@ const QuestoesPage = () => {
   const [semestreSelecionado, setSemestreSelecionado] = useState(null);
   const [dados, setDados] = useState({});
   const [ucExpandida, setUcExpandida] = useState(null);
+  const [materiaSelecionada, setMateriaSelecionada] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,11 +27,6 @@ const QuestoesPage = () => {
         .from("curso_disciplina")
         .select("ano, semestre, disciplinas(iddisciplina, nome, materia(idmateria, nome))")
         .eq("idcurso", userInfo.idcurso);
-
-      const todasMaterias = disciplinasRaw
-        .map(({ disciplinas }) => disciplinas?.materia || [])
-        .flat()
-        .map((m) => m.idmateria);
 
       const { data: perguntasData } = await supabase
         .from("perguntas")
@@ -94,20 +90,23 @@ const QuestoesPage = () => {
     fetchDados();
   }, []);
 
-  const handleMateriaClick = (disciplina, materia) => {
+  const handleFiltroClick = (tipo) => {
+    if (!materiaSelecionada) return;
+
     navigate("/user/questoes-resolver", {
       state: {
-        iddisciplina: disciplina.iddisciplina,
-        idmateria: materia.id,
-        nomeMateria: materia.nome,
+        iddisciplina: materiaSelecionada.disciplina.iddisciplina,
+        idmateria: materiaSelecionada.materia.id,
+        nomeMateria: materiaSelecionada.materia.nome,
+        tipo,
       },
     });
   };
 
   const getProgressVariant = (percent) => {
-    if (percent <= 25) return "danger"; 
-    if (percent <= 75) return "warning"; 
-    return "info"; 
+    if (percent <= 25) return "danger";
+    if (percent <= 75) return "warning";
+    return "success";
   };
 
   const anos = Object.keys(dados);
@@ -174,7 +173,7 @@ const QuestoesPage = () => {
                       <Card
                         className="border border-1 border-light shadow-sm"
                         style={{ cursor: "pointer" }}
-                        onClick={() => handleMateriaClick(ucDados, materia)}
+                        onClick={() => setMateriaSelecionada({ disciplina: ucDados, materia })}
                       >
                         <Card.Body>
                           <h6 className="fw-bold mb-1">{materia.nome}</h6>
@@ -189,6 +188,34 @@ const QuestoesPage = () => {
                           />
                         </Card.Body>
                       </Card>
+
+                      {materiaSelecionada && materiaSelecionada.materia.id === materia.id && (
+                        <Card className="mt-2 border-0 shadow-sm rounded-3">
+                          <Card.Body className="d-flex flex-column gap-2">
+                            <Button
+                              variant="outline-primary"
+                              className="w-100 text-start px-3 py-2 fw-semibold"
+                              onClick={() => handleFiltroClick("todas")}
+                            >
+                              📘 Todas
+                            </Button>
+                            <Button
+                              variant="outline-danger"
+                              className="w-100 text-start px-3 py-2 fw-semibold"
+                              onClick={() => handleFiltroClick("erradas")}
+                            >
+                              ❌ Erradas
+                            </Button>
+                            <Button
+                              variant="outline-warning"
+                              className="w-100 text-start px-3 py-2 fw-semibold"
+                              onClick={() => handleFiltroClick("nao_resolvidas")}
+                            >
+                              ❓ Não Resolvidas
+                            </Button>
+                          </Card.Body>
+                        </Card>
+                      )}
                     </Col>
                   );
                 })}
