@@ -24,3 +24,8 @@ Cloudinary (Armazenamento de Imagens)
 
 # Clonar o repositório
 git clone https://github.com/JoaoRei61/ProjetoPDI/tree/mobile
+
+# Para Iniciar a nossa apliaçãop tem que escrever o seguinte:
+npx expo start --tunnel -c
+
+
