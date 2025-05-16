@@ -24,7 +24,7 @@ Supabase (Base de Dados e Autenticação)
 # Clonar o repositório
 git clone https://github.com/JoaoRei61/ProjetoPDI/tree/mobile
 
-# Para Iniciar a nossa apliaçãop tem que escrever o seguinte:
+# Para Iniciar a nossa apliação tem que escrever o seguinte:
 npx expo start --tunnel -c
 
 # Disciplinas que estão com conteudos no momento
