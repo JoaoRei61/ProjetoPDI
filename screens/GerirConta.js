@@ -20,11 +20,10 @@ export default function GerirContaScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
 
-  // Estados para dados do usuário (nome, telefone, tipoConta, idCurso)
+  // Estados para dados do usuário (nome, telefone, idCurso)
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [tipoConta, setTipoConta] = useState("");
   const [idCurso, setIdCurso] = useState(null);
   const [loading, setLoading] = useState(true); 
 
@@ -36,7 +35,6 @@ export default function GerirContaScreen() {
   const [modalNomeVisible, setModalNomeVisible] = useState(false);
   const [modalEmailVisible, setModalEmailVisible] = useState(false);
   const [modalTelefoneVisible, setModalTelefoneVisible] = useState(false);
-  const [modalTipoContaVisible, setModalTipoContaVisible] = useState(false);
   const [modalIdCursoVisible, setModalIdCursoVisible] = useState(false);
 
   // Modal para confirmar envio de link de redefinição
@@ -75,7 +73,6 @@ export default function GerirContaScreen() {
       if (!error && info) {
         setNome(info.nome || "");
         setTelefone(info.telefone || "");
-        setTipoConta(info.tipo_conta || "");
         setIdCurso(info.idcurso || null);
       }
     } catch (err) {
@@ -170,16 +167,7 @@ export default function GerirContaScreen() {
     await updateUtilizadores({ telefone: tempTelefone });
   };
 
-  // ====== Tipo de Conta ======
-  const handleAlterarTipoConta = () => {
-    setModalTipoContaVisible(true);
-  };
-  const selectTipoConta = async (valor) => {
-    setModalTipoContaVisible(false);
-    setTipoConta(valor);
-    // Atualiza a tabela "utilizadores"
-    await updateUtilizadores({ tipo_conta: valor });
-  };
+
 
   // ====== idCurso ======
   const handleAlterarCurso = () => {
@@ -237,15 +225,6 @@ export default function GerirContaScreen() {
           <Text style={styles.label}>Telefone</Text>
           <Text style={styles.value}>{telefone || "Sem telefone"}</Text>
           <TouchableOpacity style={styles.alterarButton} onPress={handleAlterarTelefone}>
-            <Text style={styles.alterarButtonText}>Alterar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Card TIPO_CONTA */}
-        <View style={[styles.card, { backgroundColor: "#FFF5BA" }]}>
-          <Text style={styles.label}>Tipo de Conta</Text>
-          <Text style={styles.value}>{tipoConta || "desconhecido"}</Text>
-          <TouchableOpacity style={styles.alterarButton} onPress={handleAlterarTipoConta}>
             <Text style={styles.alterarButtonText}>Alterar</Text>
           </TouchableOpacity>
         </View>
@@ -383,43 +362,6 @@ export default function GerirContaScreen() {
                 Salvar
               </Button>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* ============ MODAL para alterar TipoConta ============ */}
-      <Modal visible={modalTipoContaVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Alterar Tipo de Conta</Text>
-            <View style={{ flexDirection: "row", justifyContent: "space-evenly", marginTop: 20 }}>
-              <Button
-                mode="outlined"
-                onPress={async () => {
-                  setModalTipoContaVisible(false);
-                  selectTipoConta("aluno");
-                }}
-              >
-                Aluno
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={async () => {
-                  setModalTipoContaVisible(false);
-                  selectTipoConta("professor");
-                }}
-              >
-                Professor
-              </Button>
-            </View>
-
-            <Button
-              mode="contained"
-              onPress={() => setModalTipoContaVisible(false)}
-              style={[styles.modalButton, { marginTop: 20, backgroundColor: "#aaa" }]}
-            >
-              Fechar
-            </Button>
           </View>
         </View>
       </Modal>

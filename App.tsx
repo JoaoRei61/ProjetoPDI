@@ -18,6 +18,7 @@ LogBox.ignoreLogs([
 // Telas do app
 import PaginaInicial from './screens/PaginaInicial';
 import GerirConteudos from './screens/GerirConteudos';
+import GerirConta from './screens/GerirConta';
 import PaginaInicial1 from './screens/PaginaInicial1';
 import PDFViewerScreen from './screens/PDFViewerScreen';
 import ExerciciosScreen from './screens/ExerciciosScreen';
@@ -57,6 +58,7 @@ function AppNavigator() {
         <>
           <Stack.Screen name="PaginaInicial" component={PaginaInicial} />
           <Stack.Screen name="GerirConteudos" component={GerirConteudos} />
+          <Stack.Screen name="GerirConta" component={GerirConta} />
           <Stack.Screen name="PaginaInicial1" component={PaginaInicial1} />
           <Stack.Screen name="PDFViewer" component={PDFViewerScreen} />
           <Stack.Screen name="Disciplinas" component={DisciplinasScreen} />
@@ -64,7 +66,7 @@ function AppNavigator() {
           <Stack.Screen name="Exames" component={ExamesScreen} />
           <Stack.Screen name="ExamesPerguntas" component={ExamesPerguntasScreen} />
           <Stack.Screen name="ExerciciosScreen" component={ExerciciosScreen} />
-          <Stack.Screen name="ExerciciosPerguntasScreen" component={ExerciciosPerguntasScreen} />
+          <Stack.Screen name="ExerciciosPerguntas" component={ExerciciosPerguntasScreen} />
           <Stack.Screen name="Conquistas" component={ConquistasScreen} />
           <Stack.Screen name="Resumos" component={ResumosScreen} />
           <Stack.Screen name="Ranking" component={RankingScreen} />

@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { Button } from "react-native-paper";
 import { useAuth } from "../context/AuthProvider";
+import { Ionicons } from '@expo/vector-icons';
 import Header from "../componentes/header";
 import LoadingScreen from "../screens/LoadingScreen";
 
@@ -21,6 +22,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   const [anoSelecionado, setAnoSelecionado] = useState(
     disciplinaPreSelecionada?.ano || null
   );
+  const [mostrarAnos, setMostrarAnos] = useState(false);
   const [semestreSelecionado, setSemestreSelecionado] = useState(
     disciplinaPreSelecionada?.semestre || null
   );
@@ -213,6 +215,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <Header />
+      <Text style={styles.welcome}>Olá, {user?.user_metadata?.nome || 'Aluno'}!</Text>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>
           Selecione ano, semestre, disciplina e matéria
@@ -224,54 +227,60 @@ export default function ExerciciosScreen({ route, navigation }) {
 
         {!disciplinaPreSelecionada && (
           <>
-            <Text style={styles.subtitle}>1) Ano</Text>
-            <View style={styles.row}>
-              {[1, 2, 3].map((ano) => (
+                <View style={styles.anoContainer}>
                 <TouchableOpacity
-                  key={ano}
-                  style={[
-                    styles.btn,
-                    anoSelecionado === ano && styles.btnSelected,
-                  ]}
-                  onPress={() => selecionarAno(ano)}
+                  style={styles.dropdownBotao}
+                  onPress={() => setMostrarAnos(!mostrarAnos)}
                 >
-                  <Text
-                    style={[
-                      styles.btnText,
-                      anoSelecionado === ano && styles.btnTextSelected,
-                    ]}
-                  >
-                    {ano}º
-                  </Text>
+                  <Text style={styles.dropdownTexto}>Escolhe o Ano</Text>
+                  <Ionicons name="chevron-down" size={20} color="#fff" />
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
 
-            {anoSelecionado && (
-              <>
-                <Text style={styles.subtitle}>2) Semestre</Text>
-                <View style={styles.row}>
-                  {[1, 2].map((sem) => (
+              {mostrarAnos && (
+                <View style={styles.anosDropdown}>
+                  {[1, 2, 3].map((ano) => (
                     <TouchableOpacity
-                      key={sem}
-                      style={[
-                        styles.btn,
-                        semestreSelecionado === sem && styles.btnSelected,
-                      ]}
-                      onPress={() => selecionarSemestre(sem)}
+                      key={ano}
+                      style={anoSelecionado === ano ? styles.anoSelecionado : styles.ano}
+                      onPress={() => {
+                        setAnoSelecionado(ano);
+                        setMostrarAnos(false);
+                      }}
                     >
-                      <Text
-                        style={[
-                          styles.btnText,
-                          semestreSelecionado === sem && styles.btnTextSelected,
-                        ]}
-                      >
-                        {sem}º Sem
-                      </Text>
+                      <Text style={styles.anoTexto}>{ano}º Ano</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
-              </>
+              )}
+
+                <View style={styles.anoBadge}>
+                  <Ionicons
+                    name="book-outline"
+                    size={20}
+                    color="#0d47a1"
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.anoBadgeTexto}>
+                    Estás a ver o {anoSelecionado}º Ano
+                  </Text>
+                </View>
+
+
+
+            {anoSelecionado && (
+             <View style={styles.anosDropdown}>
+                {[1, 2].map((sem) => (
+                  <TouchableOpacity
+                    key={sem}
+                    style={semestreSelecionado === sem ? styles.anoSelecionado : styles.ano}
+                    onPress={() => selecionarSemestre(sem)}
+                  >
+                    <Text style={styles.anoTexto}>{sem}º Sem</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
             )}
 
             {semestreSelecionado && (
@@ -368,6 +377,94 @@ export default function ExerciciosScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  anoBadge: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: '#d1c4e9',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  anoBadgeTexto: {
+    color: '#1a237e',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  anoContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  dropdownBotao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#3949ab',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  dropdownTexto: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  anosDropdown: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 25,
+  },
+  ano: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#c5cae9',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  anoSelecionado: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#3f51b5',
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  anoTexto: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  welcome: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1a237e',
+    textAlign: 'center',
+    marginVertical: 30,
+  },
   loadingContainer: {
     flex: 1,
     backgroundColor: "#f4f6fa",
@@ -415,52 +512,69 @@ const styles = StyleSheet.create({
   btnText: { color: "#333" },
   btnTextSelected: { color: "#fff" },
   cardWrapper: { marginBottom: 12 },
-  card: {
-    backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: "#0056b3",
+  cardSelected: {
+    borderColor: '#3949ab',
+    backgroundColor: '#e8eaf6',
   },
-  cardSelected: { borderColor: "#d32f2f" },
-  cardText: { color: "#0056b3", fontWeight: "bold" },
-  cardTextSelected: { color: "#d32f2f" },
+  cardText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a237e',
+    marginBottom: 8,
+  },
+  cardTextSelected: {
+    color: '#3949ab',
+  },
   dualBarBg: {
     height: 6,
-    backgroundColor: "#ddd",
+    backgroundColor: '#eee',
     borderRadius: 3,
-    marginTop: 4,
-    overflow: "hidden",
-    position: "relative",
+    marginTop: 8,
+    overflow: 'hidden',
   },
   dualBarResolved: {
-    height: 12,
-    backgroundColor: "#0056b3",  // azul para resolvidas
+    height: 6,
+    backgroundColor: '#64b5f6', // azul claro
   },
   dualBarCorrect: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     left: 0,
-    height: 12,
-    backgroundColor: "#4CAF50",  // verde para corretas
+    height: 6,
+    backgroundColor: '#81c784', // verde claro
   },
   progressLabel: {
-    fontSize: 12,
-    color: "#555",
-    marginTop: 4,
-    textAlign: "right",
+    fontSize: 13,
+    color: '#444',
+    marginTop: 6,
+    textAlign: 'right',
+    fontStyle: 'italic',
   },
   materiaBtn: {
-    padding: 12,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#0056b3",
-    borderRadius: 6,
-    marginBottom: 8,
-    backgroundColor: "#fff",
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  materiaBtnSelected: { backgroundColor: "#0056b3" },
-  materiaText: { color: "#0056b3" },
-  materiaTextSelected: { color: "#fff" },
+  materiaBtnSelected: {
+    backgroundColor: '#3949ab',
+    borderColor: '#3949ab',
+  },
+  materiaText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a237e',
+  },
+  materiaTextSelected: {
+    color: '#fff',
+  },
   footer: {
     padding: 12,
     borderTopWidth: 1,

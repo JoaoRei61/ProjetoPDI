@@ -49,6 +49,11 @@ const CriarContaScreen = ({ navigation }) => {
   
 
   // Validação simples dos campos
+  const validarEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+
   const validarCampos = () => {
     if (!nome.trim()) {
       Alert.alert('Erro', 'Por favor, preencha o nome completo.');
@@ -67,12 +72,19 @@ const CriarContaScreen = ({ navigation }) => {
       Alert.alert('Erro', 'Por favor, introduza um username.');
       return false;
     }    
-    if (!email.trim()) {
-      Alert.alert('Erro', 'Por favor, introduza um email válido.');
+    if (!email.trim() || !validarEmail(email)) {
+      Alert.alert('Erro', 'Por favor, introduza um email válido (ex: rodrigo@gmail.com).');
       return false;
     }
     if (!palavrapasse.trim()) {
       Alert.alert('Erro', 'Por favor, introduza uma palavra-passe.');
+      return false;
+    }
+    if (!validarPasswordSegura(palavrapasse)) {
+      Alert.alert(
+        'Palavra-passe fraca',
+        'A palavra-passe deve ter pelo menos 8 caracteres, uma letra maiúscula e um símbolo como "_" ou "!".'
+      );
       return false;
     }
     if (!cursoSelecionado) {
@@ -81,6 +93,12 @@ const CriarContaScreen = ({ navigation }) => {
     }
     return true;
   };
+
+  const validarPasswordSegura = (password) => {
+  const regex = /^(?=.*[A-Z])(?=.*[_!@#$%^&*()\-+=]).{8,}$/;
+  return regex.test(password);
+};
+
 
   // Criação de conta + Inserção na tabela `utilizadores` (sem guardar `email`)
   const criarConta = async () => {

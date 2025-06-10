@@ -8,12 +8,16 @@ import {
 } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { useAuth } from "../context/AuthProvider";
+import { Ionicons } from '@expo/vector-icons';
 import Header from "../componentes/header";
 import Slider from "@react-native-community/slider";
 import LoadingScreen from "../screens/LoadingScreen";
 
 export default function ExameScreen({ route, navigation }) {
   const { supabase, user, loading } = useAuth();
+
+  const [mostrarAnos, setMostrarAnos] = useState(false);
+
 
   // Se vier disciplina do param, podes usá-la diretamente
   const { disciplinaPreSelecionada } = route.params || {};
@@ -252,11 +256,17 @@ export default function ExameScreen({ route, navigation }) {
       Alert.alert("Selecione uma disciplina primeiro!");
       return;
     }
-    if (materiasSelecionadas.length === 0) {
+    //talvez aqui eliminar
+    if (materiasSelecionadas.length < 1) {
       Alert.alert("Selecione pelo menos uma matéria!");
       return;
     }
 
+    if (numPerguntas < 2) {
+      Alert.alert("Escolha pelo menos 2 perguntas para iniciar o teste.");
+      return;
+    }
+    //até aqui
     // Passamos iddisciplina e numPerguntas para a próxima tela
     navigation.navigate("ExamesPerguntas", {
       selectedMaterias: materiasSelecionadas,
@@ -275,6 +285,7 @@ export default function ExameScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <Header />
+      <Text style={styles.welcome}>Olá, {user?.user_metadata?.nome || 'Aluno'}!</Text>
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>
@@ -286,25 +297,45 @@ export default function ExameScreen({ route, navigation }) {
         {/* Se não veio disciplina preSelecionada => escolha manual de ano, sem, disc */}
         {!disciplinaPreSelecionada && (
           <>
-            <Text style={styles.subtitle}>1) Escolha o Ano</Text>
-            <View style={styles.anoContainer}>
-              {[1, 2, 3].map((ano) => (
+              <View style={styles.anoContainer}>
                 <TouchableOpacity
-                  key={ano}
-                  style={[
-                    styles.anoButton,
-                    anoSelecionado === ano && styles.anoSelecionado,
-                  ]}
-                  onPress={() => selecionarAno(ano)}
+                  style={styles.dropdownBotao}
+                  onPress={() => setMostrarAnos(!mostrarAnos)}
                 >
-                  <Text style={styles.anoTexto}>{ano}º</Text>
+                  <Text style={styles.dropdownTexto}>Escolhe o Ano</Text>
+                  <Ionicons name="chevron-down" size={20} color="#fff" />
                 </TouchableOpacity>
-              ))}
-            </View>
+              </View>
+
+            {mostrarAnos && (
+              <View style={styles.anosDropdown}>
+                {[1, 2, 3].map((ano) => (
+                  <TouchableOpacity
+                    key={ano}
+                    style={anoSelecionado === ano ? styles.anoSelecionado : styles.ano}
+                    onPress={() => {
+                      setAnoSelecionado(ano);
+                      setMostrarAnos(false);
+                    }}
+                  >
+                    <Text style={styles.anoTexto}>{ano}º Ano</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             {anoSelecionado && (
               <>
-                <Text style={styles.subtitle}>2) Escolha o Semestre</Text>
+              <View style={styles.anoBadge}>
+                <Ionicons name="book-outline" size={20} color="#0d47a1" style={{ marginRight: 6 }} />
+                <Text style={styles.anoBadgeTexto}>
+                  Estás a ver o {anoSelecionado}º Ano
+                </Text>
+              </View>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolhe o Semestre</Text>
+                </View>
+
                 <View style={styles.semestreContainer}>
                   {[1, 2].map((sem) => (
                     <TouchableOpacity
@@ -324,7 +355,10 @@ export default function ExameScreen({ route, navigation }) {
 
             {semestreSelecionado && (
               <>
-                <Text style={styles.subtitle}>3) Escolha a Disciplina</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolhe a Disciplina</Text>
+                </View>
+
                 <View style={styles.disciplinasContainer}>
                   {disciplinas.map((disc) => {
                     const sel =
@@ -360,7 +394,10 @@ export default function ExameScreen({ route, navigation }) {
         {/* Matérias */}
         {disciplinaSelecionada && (
           <>
-            <Text style={styles.subtitle}>4) Escolha a(s) matéria(s)</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Escolha a(s) Matéria(s) </Text>
+            </View>
+
             {materias.map((mat) => {
               const sel = materiasSelecionadas.includes(mat.idmateria);
               return (
@@ -385,9 +422,9 @@ export default function ExameScreen({ route, navigation }) {
             <Text style={styles.sliderLabel}>Número de Perguntas: {numPerguntas}</Text>
             <Slider
               style={styles.slider}
-              minimumValue={1}
+              minimumValue={2}
               maximumValue={maxPerguntasDisponiveis}
-              step={1}
+              step={2}
               value={numPerguntas}
               onValueChange={(value) => setNumPerguntas(value)}
               minimumTrackTintColor="#0056b3"
@@ -414,6 +451,84 @@ const backgroundColor = "#f4f6fa";
 const whiteColor = "#fff";
 
 const styles = StyleSheet.create({
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  sectionNumber: {
+    backgroundColor: '#3949ab',
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    width: 28,
+    height: 28,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    borderRadius: 14,
+    marginRight: 10,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1a237e',
+  },
+
+  anoBadgeTexto: {
+    color: '#1a237e',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  anoBadge: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    backgroundColor: '#d1c4e9',
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  anosDropdown: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 50, 
+    marginBottom: 25,
+  },
+  dropdownTexto: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  dropdownBotao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#3949ab',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '80%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  welcome: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1a237e',
+    textAlign: 'center',
+    marginVertical: 30,
+  },
   containerLoading: {
     flex: 1,
     backgroundColor,
@@ -454,9 +569,16 @@ const styles = StyleSheet.create({
   },
 
   anoContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  ano: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#c5cae9',
+    minWidth: 80,
+    alignItems: 'center',
   },
   anoButton: {
     backgroundColor: "#ccc",
@@ -465,34 +587,46 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   anoSelecionado: {
-    backgroundColor: primaryColor,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#3f51b5',
+    minWidth: 80,
+    alignItems: 'center',
   },
   anoTexto: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "bold",
+    color: '#fff',
+    fontWeight: '600',
   },
-
   semestreContainer: {
     flexDirection: "row",
     justifyContent: "center",
     marginBottom: 15,
   },
   semestreButton: {
-    backgroundColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginHorizontal: 10,
+    backgroundColor: "#e0e0e0",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   semestreSelecionado: {
-    backgroundColor: primaryColor,
+    backgroundColor: "#0056b3",
   },
   semestreTexto: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#333",
+    fontWeight: "600",
   },
-
+  semestreTextoSelecionado: {
+    color: "#fff",
+  },
   disciplinasContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -500,20 +634,26 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   disciplinaButton: {
-    backgroundColor: whiteColor,
-    borderColor: primaryColor,
-    borderWidth: 2,
-    borderRadius: 8,
-    padding: 10,
-    margin: 5,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   disciplinaSelecionada: {
-    borderColor: accentColor,
+    backgroundColor: '#e8eaf6',
+    borderColor: '#d32f2f',
+    borderWidth: 2,
   },
   disciplinaButtonText: {
-    color: primaryColor,
-    fontWeight: "bold",
-    fontSize: 15,
+    color: '#1a237e',
+    fontWeight: '600',
+    fontSize: 16,
   },
 
   selectedDiscContainer: {
@@ -531,28 +671,32 @@ const styles = StyleSheet.create({
   },
 
   materiaButton: {
-    width: "100%",
-    padding: 15,
+    backgroundColor: '#fff',
+    borderColor: '#3949ab',
     borderWidth: 2,
-    borderColor: primaryColor,
-    borderRadius: 8,
-    marginBottom: 15,
-    alignItems: "center",
-    backgroundColor: primaryColor,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   materiaSelecionada: {
-    backgroundColor: primaryColor,
-    borderColor: accentColor,
+    backgroundColor: '#3949ab',
+    borderColor: '#d32f2f',
   },
   materiaText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: whiteColor,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1a237e',
   },
   materiaTextSelecionada: {
-    color: whiteColor,
+    color: '#fff',
   },
-
   disponiveisText: {
     fontSize: 14,
     color: "#333",
