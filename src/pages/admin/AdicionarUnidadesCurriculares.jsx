@@ -3,6 +3,8 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import supabase from '../../helper/supabaseconfig';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AdicionarUnidadesCurriculares = () => {
     const [unidades, setUnidades] = useState([]);
@@ -84,44 +86,93 @@ const AdicionarUnidadesCurriculares = () => {
     };
 
     const handleFormSubmit = async (values, { resetForm }) => {
-        // Verificar duplicação de nome ou código
-        const { data: ucExistente, error: erroBusca } = await supabase
+        const { data: disciplinaExistente, error: erroBusca } = await supabase
             .from('disciplinas')
             .select()
-            .or(`nome.eq.${values.nomeUnidade},codigo.eq.${values.codigoUC}`);
+            .or(`nome.eq.${values.nomeUnidade},codigo.eq.${values.codigoUC}`)
+            .maybeSingle();
 
         if (erroBusca) {
-            console.error("Erro ao verificar duplicação:", erroBusca.message);
+            toast.error("Erro ao verificar duplicação.");
+            console.error("Erro:", erroBusca.message);
             return;
         }
 
-        if (ucExistente.length > 0) {
-            alert("Já existe uma unidade curricular com este nome ou código.");
-            return;
+        let iddisciplina;
+
+        if (disciplinaExistente) {
+            iddisciplina = disciplinaExistente.iddisciplina;
+
+            const { data: associacoesExistentes, error: erroAssociacoes } = await supabase
+                .from('curso_disciplina')
+                .select('idcurso')
+                .eq('iddisciplina', iddisciplina);
+
+            if (erroAssociacoes) {
+                toast.error("Erro ao verificar associações.");
+                console.error("Erro:", erroAssociacoes.message);
+                return;
+            }
+
+            const idsCursosExistentes = associacoesExistentes.map(a => a.idcurso);
+
+            const novasLigacoes = Object.entries(cursosSelecionados)
+                .filter(([idcurso]) => !idsCursosExistentes.includes(parseInt(idcurso)))
+                .map(([idcurso, info]) => ({
+                    idcurso: parseInt(idcurso),
+                    iddisciplina,
+                    ano: parseInt(info.ano),
+                    semestre: parseInt(info.semestre),
+                }));
+
+            if (novasLigacoes.length === 0) {
+                toast.warn("Esta unidade curricular já está associada a todos os cursos selecionados.");
+                return;
+            }
+
+            const { error: erroInserirLigacoes } = await supabase
+                .from('curso_disciplina')
+                .insert(novasLigacoes);
+
+            if (erroInserirLigacoes) {
+                toast.error("Erro ao associar cursos.");
+                console.error("Erro:", erroInserirLigacoes.message);
+                return;
+            }
+
+            toast.success("Unidade curricular associada com sucesso!");
+
+        } else {
+            const { data: novaDisciplina, error } = await supabase
+                .from('disciplinas')
+                .insert([{ nome: values.nomeUnidade, codigo: values.codigoUC }])
+                .select()
+                .single();
+
+            if (error) {
+                toast.error("Erro ao adicionar disciplina.");
+                console.error('Erro:', error.message);
+                return;
+            }
+
+            iddisciplina = novaDisciplina.iddisciplina;
+
+            const ligacoes = Object.entries(cursosSelecionados).map(([idcurso, info]) => ({
+                idcurso: parseInt(idcurso),
+                iddisciplina,
+                ano: parseInt(info.ano),
+                semestre: parseInt(info.semestre),
+            }));
+
+            const { error: erroLigacoes } = await supabase.from('curso_disciplina').insert(ligacoes);
+            if (erroLigacoes) {
+                toast.error("Erro ao associar cursos.");
+                console.error('Erro:', erroLigacoes.message);
+                return;
+            }
+
+            toast.success("Unidade curricular criada e associada com sucesso!");
         }
-
-        // Inserir nova UC
-        const { data: novaDisciplina, error } = await supabase
-            .from('disciplinas')
-            .insert([{ nome: values.nomeUnidade, codigo: values.codigoUC }])
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Erro ao adicionar disciplina:', error.message);
-            return;
-        }
-
-        // Associar UC aos cursos
-        const ligacoes = Object.entries(cursosSelecionados).map(([idcurso, info]) => ({
-            idcurso: parseInt(idcurso),
-            iddisciplina: novaDisciplina.iddisciplina,
-            ano: parseInt(info.ano),
-            semestre: parseInt(info.semestre),
-        }));
-
-        const { error: erroLigacoes } = await supabase.from('curso_disciplina').insert(ligacoes);
-        if (erroLigacoes) console.error('Erro ao associar cursos:', erroLigacoes.message);
 
         fetchUnidades();
         resetForm();
@@ -234,7 +285,7 @@ const AdicionarUnidadesCurriculares = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {unidades.map((uc, index) => (
+                            {unidades.map((uc, index) =>
                                 uc.cursos.map((curso, idx) => (
                                     <tr key={`${index}-${idx}`}>
                                         {idx === 0 && (
@@ -245,11 +296,13 @@ const AdicionarUnidadesCurriculares = () => {
                                         <td>{curso.semestre}º</td>
                                     </tr>
                                 ))
-                            ))}
+                            )}
                         </tbody>
                     </table>
                 )}
             </div>
+
+            <ToastContainer position="top-right" autoClose={3000} />
         </div>
     );
 };

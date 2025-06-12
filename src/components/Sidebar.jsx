@@ -30,7 +30,6 @@ const SidebarUser = () => {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
 
-      // Buscar tipo de conta
       const { data: tipoData } = await supabase
         .from("utilizadores")
         .select("tipo_conta")
@@ -40,7 +39,6 @@ const SidebarUser = () => {
       const tipo = tipoData?.tipo_conta;
       setTipoConta(tipo);
 
-      // Se for admin ou docente, buscar resumos pendentes
       if (tipo === "admin" || tipo === "docente") {
         let idsDisciplinas = [];
 
@@ -101,12 +99,8 @@ const SidebarUser = () => {
                 }),
               }}
             >
-              
-
-              {/* Mostrar apenas para docentes/admins */}
-              {(tipoConta === "admin" || tipoConta === "docente") && (
+              {(tipoConta === "docente" || tipoConta === "admin") && (
                 <>
-                  
                   <MenuItem
                     icon={<FaPlusCircle />}
                     active={location.pathname === "/user/adicionar-exercicios"}
@@ -133,45 +127,62 @@ const SidebarUser = () => {
                       )}
                     </div>
                   </MenuItem>
-                  <hr className="bg-light mx-3" />
+                  <MenuItem
+                    icon={<FaFileAlt />}
+                    active={location.pathname === "/user/resumos"}
+                    component={<Link to="/user/resumos" />}
+                  >
+                    Resumos
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FaTrophy />}
+                    active={location.pathname === "/user/leaderboard"}
+                    component={<Link to="/user/leaderboard" />}
+                  >
+                    Leaderboard
+                  </MenuItem>
                 </>
               )}
-              <MenuItem
-                icon={<FaHome />}
-                active={location.pathname === "/user/"}
-                component={<Link to="/user" />}
-              >
-                Início
-              </MenuItem>
 
-              <MenuItem
-                icon={<FaQuestionCircle />}
-                active={location.pathname === "/user/questoes"}
-                component={<Link to="/user/questoes" />}
-              >
-                Questões
-              </MenuItem>
-              <MenuItem
-                icon={<FaPenFancy />}
-                active={location.pathname === "/user/modo-exame"}
-                component={<Link to="/user/modo-exame" />}
-              >
-                Modo Exame
-              </MenuItem>
-              <MenuItem
-                icon={<FaFileAlt />}
-                active={location.pathname === "/user/resumos"}
-                component={<Link to="/user/resumos" />}
-              >
-                Resumos
-              </MenuItem>
-              <MenuItem
-                icon={<FaTrophy />}
-                active={location.pathname === "/user/leaderboard"}
-                component={<Link to="/user/leaderboard" />}
-              >
-                Leaderboard
-              </MenuItem>
+              {tipoConta !== "docente" && (
+                <>
+                  <MenuItem
+                    icon={<FaHome />}
+                    active={location.pathname === "/user/"}
+                    component={<Link to="/user" />}
+                  >
+                    Início
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FaQuestionCircle />}
+                    active={location.pathname === "/user/questoes"}
+                    component={<Link to="/user/questoes" />}
+                  >
+                    Questões
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FaPenFancy />}
+                    active={location.pathname === "/user/modo-exame"}
+                    component={<Link to="/user/modo-exame" />}
+                  >
+                    Modo Exame
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FaFileAlt />}
+                    active={location.pathname === "/user/resumos"}
+                    component={<Link to="/user/resumos" />}
+                  >
+                    Resumos
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FaTrophy />}
+                    active={location.pathname === "/user/leaderboard"}
+                    component={<Link to="/user/leaderboard" />}
+                  >
+                    Leaderboard
+                  </MenuItem>
+                </>
+              )}
             </Menu>
           </div>
 

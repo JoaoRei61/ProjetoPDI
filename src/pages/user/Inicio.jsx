@@ -1,3 +1,4 @@
+// Inicio.jsx
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { AiOutlineLeft, AiOutlineRight, AiFillFileText } from "react-icons/ai";
@@ -20,7 +21,7 @@ const Inicio = () => {
   const [anoSelecionado, setAnoSelecionado] = useState("1º ano");
   const [currentIndex1, setCurrentIndex1] = useState(0);
   const [currentIndex2, setCurrentIndex2] = useState(0);
-  const [username, setUsername] = useState("Utilizador");
+  const [nomeCompleto, setNomeCompleto] = useState("Utilizador");
   const [disciplinasPorAno, setDisciplinasPorAno] = useState({});
   const [frase, setFrase] = useState("");
 
@@ -31,76 +32,34 @@ const Inicio = () => {
 
       const { data: userInfo, error: dbError } = await supabase
         .from("utilizadores")
-        .select("username, idcurso, tipo_conta")
+        .select("nome, apelido, idcurso, tipo_conta")
         .eq("id", user.user.id)
         .single();
 
       if (dbError || !userInfo) return;
 
-      setUsername(userInfo.username || "Utilizador");
+      setNomeCompleto(`${userInfo.nome} ${userInfo.apelido || ""}`);
 
       const agrupado = {};
 
       if (userInfo.tipo_conta === "aluno") {
-        const { data: resultados, error: erroDisc } = await supabase
+        const { data: resultados } = await supabase
           .from("curso_disciplina")
-          .select(`
-            ano,
-            semestre,
-            disciplinas (
-              nome,
-              docente_disciplina (
-                utilizadores ( nome, apelido )
-              )
-            )
-          `)
+          .select(`ano, semestre, disciplinas ( iddisciplina, nome, docente_disciplina ( utilizadores ( username ) ) )`)
           .eq("idcurso", userInfo.idcurso);
-
-        if (erroDisc) return;
 
         resultados.forEach(({ ano, semestre, disciplinas }) => {
           const anoTexto = `${ano}º ano`;
           const semestreTexto = `semestre${semestre}`;
           if (!agrupado[anoTexto]) agrupado[anoTexto] = { semestre1: [], semestre2: [] };
 
-          const docentes = disciplinas?.docente_disciplina?.map(d => {
-            const u = d.utilizadores;
-            return u ? `${u.nome} ${u.apelido}` : null;
-          }).filter(Boolean);
-                    const docente = docentes?.length ? docentes.join(", ") : "A designar";
+          const docentes = disciplinas?.docente_disciplina?.map(d => d.utilizadores?.username).filter(Boolean);
+          const docente = docentes?.length ? docentes.join(", ") : "A designar";
 
           agrupado[anoTexto][semestreTexto].push({
             titulo: disciplinas.nome,
+            id: disciplinas.iddisciplina,
             docente,
-          });
-        });
-
-      } else if (userInfo.tipo_conta === "docente") {
-        const { data: resultados, error: erroDoc } = await supabase
-          .from("docente_disciplina")
-          .select(`
-            disciplinas (
-              nome,
-              curso_disciplina (
-                ano,
-                semestre
-              )
-            )
-          `)
-          .eq("iddocente", user.user.id);
-
-        if (erroDoc) return;
-
-        resultados.forEach(({ disciplinas }) => {
-          disciplinas.curso_disciplina.forEach(({ ano, semestre }) => {
-            const anoTexto = `${ano}º ano`;
-            const semestreTexto = `semestre${semestre}`;
-            if (!agrupado[anoTexto]) agrupado[anoTexto] = { semestre1: [], semestre2: [] };
-
-            agrupado[anoTexto][semestreTexto].push({
-              titulo: disciplinas.nome,
-              docente: userInfo.username,
-            });
           });
         });
       }
@@ -139,7 +98,7 @@ const Inicio = () => {
         <Row className="justify-content-center">
           {disciplinas.slice(currentIndex, currentIndex + 3).map((disciplina, index) => (
             <Col key={index} md={4} className="mb-3 fade-in">
-              <Card className="shadow-sm border border-dark rounded-3">
+              <Card className="shadow-sm border border-dark rounded-3 cursor-pointer" onClick={() => navigate(`/user/disciplina/${encodeURIComponent(disciplina.titulo)}`, { state: { iddisciplina: disciplina.id } })}>
                 <Card.Body>
                   <Card.Title className="text-center fw-bold text-primary">{disciplina.titulo}</Card.Title>
                   <Card.Text className="text-center text-muted">Docente: {disciplina.docente}</Card.Text>
@@ -158,7 +117,7 @@ const Inicio = () => {
   return (
     <div className="pagina-inicio">
       <Container fluid className="p-5">
-        <h1 className="text-danger text-left mb-2 fw-bold">Olá, {username}! 👋</h1>
+        <h1 className="text-danger text-left mb-2 fw-bold">Olá, {nomeCompleto}! 👋</h1>
         <p className="lead text-muted mb-4">{frase}</p>
 
         <div className="text-center mb-4">
@@ -179,16 +138,16 @@ const Inicio = () => {
           ))}
         </div>
 
-        <h2 className="text-left mb-4 text-primary">📘 1º Semestre</h2>
+        <h2 className="text-left mb-4 text-primary">1º Semestre</h2>
         {renderDisciplinas(disciplinasSemestre1, currentIndex1, setCurrentIndex1)}
 
-        <h2 className="text-left mt-5 mb-4 text-primary">📘 2º Semestre</h2>
+        <h2 className="text-left mt-5 mb-4 text-primary">2º Semestre</h2>
         {renderDisciplinas(disciplinasSemestre2, currentIndex2, setCurrentIndex2)}
 
-        <h2 className="text-left mt-5 mb-4 fw-bold" style={{ color: "#0056b3" }}>⚡ Ações Rápidas</h2>
+        <h2 className="text-left mt-5 mb-4 fw-bold" style={{ color: "#0056b3" }}>Ações Rápidas</h2>
         <Row className="text-center">
           <Col md={4} className="mb-3">
-            <Card className="card-acao cursor-pointer" onClick={() => navigate("/questoes")}>
+            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#f0e2a5,#f0e2a5)" }} onClick={() => navigate("/user/questoes")}>  
               <Card.Body className="d-flex flex-column align-items-center justify-content-center">
                 <BsQuestionCircle className="icone" />
                 <span>Questões</span>
@@ -196,7 +155,7 @@ const Inicio = () => {
             </Card>
           </Col>
           <Col md={4} className="mb-3">
-            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg, #b30000, #dc3545)" }} onClick={() => navigate("/modo-exame")}>
+            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#b6f3ee, #b6f3ee)" }} onClick={() => navigate("/user/modo-exame")}>  
               <Card.Body className="d-flex flex-column align-items-center justify-content-center">
                 <MdEdit className="icone" />
                 <span>Modo Exame</span>
@@ -204,7 +163,7 @@ const Inicio = () => {
             </Card>
           </Col>
           <Col md={4} className="mb-3">
-            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg, #157347, #198754)" }} onClick={() => navigate("/resumos")}>
+            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#95cab1, #95cab1)" }} onClick={() => navigate("/user/resumos")}>  
               <Card.Body className="d-flex flex-column align-items-center justify-content-center">
                 <AiFillFileText className="icone" />
                 <span>Resumos</span>

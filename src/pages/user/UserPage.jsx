@@ -1,8 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import SidebarUser from "../../components/Sidebar";
-import './UserPage.css';
-
+import "../../components/Layout.css";
 
 const UserPage = () => {
     return (

@@ -185,7 +185,7 @@ const Resumos = () => {
           </div>
         ))}
         {resumosOrdenados.length === 0 && (
-          <p className="text-muted mt-3">Nenhum resumo encontrado com os filtros aplicados.</p>
+          <p className="text-muted mt-3">Nenhum resumo encontrado!</p>
         )}
       </div>
 

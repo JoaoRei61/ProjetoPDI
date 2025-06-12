@@ -8,8 +8,14 @@ const Redirecionar = () => {
 
   useEffect(() => {
     const checkRole = async () => {
-      const { data: user } = await supabase.auth.getUser();
-      const userId = user?.user?.id;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      const userId = session.user.id;
 
       const { data, error } = await supabase
         .from("utilizadores")
@@ -17,13 +23,17 @@ const Redirecionar = () => {
         .eq("id", userId)
         .single();
 
-      if (!error) {
-        if (data.tipo_conta === "admin") {
-          navigate("/admin/dashboard");
-        } else {
-          navigate("/user");
-        }        
+      if (error || !data) {
+        navigate("/login");
+        return;
       }
+
+      if (data.tipo_conta === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/user");
+      }
+
       setLoading(false);
     };
 

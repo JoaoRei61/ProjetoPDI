@@ -1,12 +1,14 @@
+// imports
 import React, { useState, useEffect } from 'react';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import supabase from '../../helper/supabaseconfig';
 import { enviarEmailCredenciais } from '../../helper/emailservice';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AdicionarDocente = () => {
-    const [message, setMessage] = useState("");
     const [utilizadores, setUtilizadores] = useState([]);
     const [disciplinas, setDisciplinas] = useState([]);
     const [cursos, setCursos] = useState([]);
@@ -57,21 +59,65 @@ const AdicionarDocente = () => {
     const gerarNomeUtilizador = (primeiroNome, ultimoNome) => primeiroNome.toLowerCase().charAt(0) + ultimoNome.toLowerCase();
 
     const handleFormSubmit = async (values, { resetForm }) => {
-        setMessage("");
         const senhaAleatoria = gerarSenhaAleatoria();
         const nomeUtilizador = gerarNomeUtilizador(values.primeiroNome, values.ultimoNome);
 
-        // Guardar a sessão do admin
+        const { data: docenteExistente } = await supabase
+            .from("utilizadores")
+            .select("*")
+            .eq("email", values.email)
+            .single();
+
+        if (docenteExistente) {
+            // docente já existe, associar novas UCs
+            const iddocente = docenteExistente.id;
+
+            const { data: ligacoesAtuais } = await supabase
+                .from("docente_disciplina")
+                .select("iddisciplina")
+                .eq("iddocente", iddocente);
+
+            const ucsAtuais = ligacoesAtuais.map(l => l.iddisciplina);
+            const novasUCs = values.ucsSelecionadas
+                .map(id => parseInt(id))
+                .filter(id => !ucsAtuais.includes(id));
+
+            if (novasUCs.length === 0) {
+                toast.warn("Este docente já está associado a todas as UCs selecionadas.");
+                return;
+            }
+
+            const novasLigacoes = novasUCs.map(iddisciplina => ({
+                iddocente,
+                iddisciplina
+            }));
+
+            const { error: erroAssociar } = await supabase
+                .from("docente_disciplina")
+                .insert(novasLigacoes);
+
+            if (erroAssociar) {
+                toast.error("Erro ao associar novas disciplinas.");
+                return;
+            }
+
+            toast.success("Docente já existente atualizado com novas UCs!");
+            resetForm();
+            setSearch("");
+            fetchAllData();
+            return;
+        }
+
+        // docente novo: criar conta
         const sessaoAdmin = await supabase.auth.getSession();
 
-        // Criar conta do docente
         const { data, error } = await supabase.auth.signUp({
             email: values.email,
             password: senhaAleatoria
         });
 
         if (error || !data?.user) {
-            setMessage("Erro ao criar conta: " + (error?.message || "sem utilizador"));
+            toast.error("Erro ao criar conta: " + (error?.message || "sem utilizador"));
             return;
         }
 
@@ -85,7 +131,7 @@ const AdicionarDocente = () => {
         }]);
 
         if (dbError) {
-            setMessage("Erro ao salvar na base de dados: " + dbError.message);
+            toast.error("Erro ao guardar na base de dados.");
             return;
         }
 
@@ -96,17 +142,16 @@ const AdicionarDocente = () => {
 
         const { error: ligacaoErro } = await supabase.from("docente_disciplina").insert(ligacoes);
         if (ligacaoErro) {
-            setMessage("Erro ao associar disciplinas: " + ligacaoErro.message);
+            toast.error("Erro ao associar disciplinas.");
             return;
         }
 
-        // Restaurar a sessão do admin
         if (sessaoAdmin.data?.session) {
             await supabase.auth.setSession(sessaoAdmin.data.session);
         }
 
         await enviarEmailCredenciais(values.email, senhaAleatoria);
-        setMessage("✅ Docente adicionado com sucesso! As credenciais foram enviadas para o email.");
+        toast.success("Docente criado e credenciais enviadas por email!");
         resetForm();
         setSearch("");
         fetchAllData();
@@ -121,7 +166,6 @@ const AdicionarDocente = () => {
     return (
         <div className="container mt-4">
             <h2 className="text-dark">Adicionar Docente</h2>
-            {message && <div className="alert alert-info">{message}</div>}
 
             <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={handleFormSubmit}>
                 {({ values, setFieldValue }) => (
@@ -221,6 +265,8 @@ const AdicionarDocente = () => {
                     </tbody>
                 </table>
             </div>
+
+            <ToastContainer position="top-right" autoClose={3000} />
         </div>
     );
 };

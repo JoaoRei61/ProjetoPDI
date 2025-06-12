@@ -50,3 +50,20 @@
     justify-content: center;
   }
   
+  .table-primary.fw-bold {
+  background-color: #cfe2ff !important;
+  font-weight: 600 !important;
+}
+
+.podium-slot p {
+  font-size: 0.95rem;
+}
+
+.table-primary.fw-bold {
+  background-color: #cfe2ff !important;
+  font-weight: 600 !important;
+}
+
+.podium-slot p {
+  font-size: 0.95rem;
+}

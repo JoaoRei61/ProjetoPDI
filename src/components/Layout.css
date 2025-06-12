@@ -1,0 +1,10 @@
+/* Garante que o container pai ocupa a altura toda */
+.d-flex.full-height {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-content {
+  overflow-y: auto;
+  height: 100vh;
+}

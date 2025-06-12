@@ -17,6 +17,7 @@ import Perfil from "./pages/user/Perfil";
 import Leaderboard from "./pages/user/LeaderBoard";
 import HistoricoExercicios from "./pages/user/HistoricoExercicios";
 import TestePage from "./pages/user/TestePage";
+import DisciplinaPage from "./pages/user/DisciplinaPage";
 
 import AdminPage from "./pages/admin/AdminPage";
 import Dashboard from "./pages/admin/Dashboard";
@@ -24,18 +25,21 @@ import AdicionarCursos from "./pages/admin/AdicionarCursos";
 import AdicionarDocentes from "./pages/admin/AdicionarDocentes";
 import AdicionarUnidadesCurriculares from "./pages/admin/AdicionarUnidadesCurriculares";
 
-
-
+import Wrapper from "./pages/Wrapper";
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Página inicial redireciona com base no tipo de conta */}
+        {/* Redireciona com base no tipo de conta */}
         <Route path="/" element={<Redirecionar />} />
 
-        {/* Rotas do utilizador autenticado */}
-        <Route path="/user" element={<UserPage />}>
+        {/* Rotas protegidas - Utilizador */}
+        <Route path="/user" element={
+          <Wrapper>
+            <UserPage />
+          </Wrapper>
+        }>
           <Route index element={<Inicio />} />
           <Route path="adicionar-exercicios" element={<AdicionarExercicios />} />
           <Route path="historico-exercicios" element={<HistoricoExercicios />} />
@@ -47,10 +51,15 @@ function App() {
           <Route path="perfil" element={<Perfil />} />
           <Route path="leaderboard" element={<Leaderboard />} />
           <Route path="teste" element={<TestePage />} />
+          <Route path="disciplina/:nome" element={<DisciplinaPage />} /> 
         </Route>
 
-        {/* Rotas de administração */}
-        <Route path="/admin" element={<AdminPage />}>
+        {/* Rotas protegidas - Admin */}
+        <Route path="/admin" element={
+          <Wrapper>
+            <AdminPage />
+          </Wrapper>
+        }>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="adicionar-curso" element={<AdicionarCursos />} />
           <Route path="adicionar-docente" element={<AdicionarDocentes />} />

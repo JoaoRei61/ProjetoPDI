@@ -27,6 +27,7 @@
     "react-pro-sidebar": "^1.1.0",
     "react-router-dom": "^7.2.0",
     "react-slick": "^0.30.3",
+    "react-toastify": "^11.0.5",
     "recharts": "^2.15.1",
     "sib-api-v3-sdk": "^8.5.0",
     "slick-carousel": "^1.8.1",
