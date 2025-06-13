@@ -115,7 +115,7 @@ export default function RankingScreen({ navigation }) {
                 {top3[1].utilizadores?.nome || "User"}{" "}
                 {top3[1].utilizadores?.apelido || ""}
               </Text>
-              <Text style={styles.podioPoints}>{top3[1].pontos} pts</Text>
+              <Text style={styles.podioPoints}>{top3[1].pontos.toFixed(2)} pts</Text>
             </Animated.View>
 
             {/* 1º lugar */}
@@ -131,7 +131,7 @@ export default function RankingScreen({ navigation }) {
                 {top3[0].utilizadores?.nome || "User"}{" "}
                 {top3[0].utilizadores?.apelido || ""}
               </Text>
-              <Text style={styles.podioPoints}>{top3[0].pontos} pts</Text>
+              <Text style={styles.podioPoints}>{top3[0].pontos.toFixed(2)} pts</Text>
             </Animated.View>
 
             {/* 3º lugar */}
@@ -147,7 +147,7 @@ export default function RankingScreen({ navigation }) {
                 {top3[2].utilizadores?.nome || "User"}{" "}
                 {top3[2].utilizadores?.apelido || ""}
               </Text>
-              <Text style={styles.podioPoints}>{top3[2].pontos} pts</Text>
+              <Text style={styles.podioPoints}>{top3[2].pontos.toFixed(2)} pts</Text>
             </Animated.View>
           </View>
         )}
@@ -169,7 +169,7 @@ export default function RankingScreen({ navigation }) {
                     {item.utilizadores?.nome || "User"}{" "}
                     {item.utilizadores?.apelido || ""}
                   </Text>
-                  <Text style={styles.rankPoints}>{item.pontos} pontos</Text>
+                  <Text style={styles.rankPoints}>{item.pontos.toFixed(2)} pontos</Text>
                 </View>
               </View>
             ))}
@@ -181,7 +181,20 @@ export default function RankingScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f7f7f7" },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f4f6fa' 
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#1a237e",
+    marginBottom: 20,
+    textAlign: "center",
+    textShadowColor: "#ccc",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
   content: {
     padding: 16,
     alignItems: "center",
@@ -197,11 +210,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginVertical: 10,
-  },
+  fontSize: 20,
+  fontWeight: "700",
+  color: "#3949ab",
+  marginVertical: 20,
+  alignSelf: "flex-start",
+},
+
   errorText: {
     color: "red",
     fontSize: 16,
@@ -218,66 +233,78 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   podioStand: {
-    width: 80,
-    backgroundColor: "#eee",
-    borderRadius: 8,
+    width: 100,
+    borderRadius: 16,
     alignItems: "center",
-    justifyContent: "flex-end",
+    justifyContent: "center",
     marginHorizontal: 8,
-    padding: 10,
+    padding: 14,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  firstPlace: {
+    height: 150,
+    backgroundColor: "#fff9c4", // dourado suave
+  },
+  secondPlace: {
+    height: 120,
+    backgroundColor: "#e0e0e0",
+  },
+  thirdPlace: {
+    height: 100,
+    backgroundColor: "#d7ccc8",
   },
   podioPos: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#333",
+    color: "#3949ab",
   },
   podioNome: {
-    fontSize: 14,
-    color: "#555",
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333",
   },
   podioPoints: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#777",
     marginTop: 4,
   },
-  firstPlace: {
-    height: 160,
-    backgroundColor: "#FFD700",
-  },
-  secondPlace: {
-    height: 130,
-    backgroundColor: "#C0C0C0",
-  },
-  thirdPlace: {
-    height: 100,
-    backgroundColor: "#CD7F32",
-  },
+
 
   // Classificação geral
   rankingItem: {
     flexDirection: "row",
     backgroundColor: "#fff",
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 5,
+    borderRadius: 16,
+    padding: 16,
+    marginVertical: 8,
     width: "100%",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   rankPosition: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#555",
+    color: "#0056b3",
     minWidth: 40,
     textAlign: "right",
   },
   rankName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: "#1a237e",
   },
   rankPoints: {
     fontSize: 14,
-    color: "#888",
+    color: "#555",
   },
   infoText: {
     fontSize: 14,

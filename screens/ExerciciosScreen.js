@@ -254,38 +254,40 @@ export default function ExerciciosScreen({ route, navigation }) {
                 </View>
               )}
 
-                <View style={styles.anoBadge}>
-                  <Ionicons
-                    name="book-outline"
-                    size={20}
-                    color="#0d47a1"
-                    style={{ marginRight: 6 }}
-                  />
-                  <Text style={styles.anoBadgeTexto}>
-                    Estás a ver o {anoSelecionado}º Ano
-                  </Text>
-                </View>
-
-
-
+                
             {anoSelecionado && (
-             <View style={styles.anosDropdown}>
-                {[1, 2].map((sem) => (
-                  <TouchableOpacity
-                    key={sem}
-                    style={semestreSelecionado === sem ? styles.anoSelecionado : styles.ano}
-                    onPress={() => selecionarSemestre(sem)}
-                  >
-                    <Text style={styles.anoTexto}>{sem}º Sem</Text>
-                  </TouchableOpacity>
-                ))}
+            <>
+              <View style={styles.anoBadge}>
+                <Ionicons name="book-outline" size={20} color="#0d47a1" style={{ marginRight: 6 }} />
+                <Text style={styles.anoBadgeTexto}>
+                  Estás a ver o {anoSelecionado}º Ano
+                </Text>
               </View>
-
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolhe o Semestre</Text>
+                </View>
+              <View style={styles.semestreContainer}>
+                  {[1, 2].map((sem) => (
+                    <TouchableOpacity
+                      key={sem}
+                      style={[
+                        styles.semestreButton,
+                        semestreSelecionado === sem && styles.semestreSelecionado,
+                      ]}
+                      onPress={() => selecionarSemestre(sem)}
+                    >
+                      <Text style={styles.semestreTexto}>{sem}º Semestre</Text>
+                    </TouchableOpacity>
+                  ))}
+               </View>
+            </>
             )}
 
             {semestreSelecionado && (
               <>
-                <Text style={styles.subtitle}>3) Disciplina</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolhe a Disciplina</Text>
+                </View>
                 {disciplinas.map((d) => {
                   const isSel =
                     disciplinaSelecionada?.iddisciplina === d.iddisciplina;
@@ -337,7 +339,9 @@ export default function ExerciciosScreen({ route, navigation }) {
 
         {disciplinaSelecionada && (
           <>
-            <Text style={styles.subtitle}>4) Matéria(s)</Text>
+            <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolhe a(s) Matéria(s)</Text>
+                </View>
             {materias.map((m) => {
                 const sel = materiasSelecionadas.includes(m.idmateria);
                 const { total = 0, resolved = 0, correct = 0 } =
@@ -377,6 +381,41 @@ export default function ExerciciosScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  semestreSelecionado: {
+    backgroundColor: "#0056b3",
+  },
+  semestreContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 15,
+  },
+  semestreButton: {
+    backgroundColor: "#e0e0e0",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1a237e',
+  },
   card: {
     backgroundColor: '#fff',
     padding: 16,
@@ -457,6 +496,10 @@ const styles = StyleSheet.create({
   anoTexto: {
     color: '#fff',
     fontWeight: '600',
+  },
+  semestreTexto: {
+    color: "#333",
+    fontWeight: "600",
   },
   welcome: {
     fontSize: 30,
@@ -564,8 +607,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   materiaBtnSelected: {
-    backgroundColor: '#3949ab',
     borderColor: '#3949ab',
+    backgroundColor: '#e8eaf6',
   },
   materiaText: {
     fontSize: 15,

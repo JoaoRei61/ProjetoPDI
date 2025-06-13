@@ -65,12 +65,9 @@ export default function PaginaInicial1({ navigation }) {
         />
         <ActionButton
           label="Gerir exercicios"
-          onPress={() => navigation.navigate('GerirExercicos')}
+          onPress={() => navigation.navigate('GerirExercicios')}
         />
-        <ActionButton
-          label="Visualizar Ranking"
-          onPress={() => navigation.navigate('Ranking')}
-        />
+        
       </View>
     </View>
   );

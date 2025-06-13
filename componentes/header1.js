@@ -118,21 +118,16 @@ const Header1 = () => {
             <Drawer.Item
               icon="file-document-edit"
               label="Gerir Exercícios"
-              onPress={() => { setDrawerVisible(false); navigation.navigate('ExerciciosScreen'); }}
+              onPress={() => { setDrawerVisible(false); navigation.navigate('GerirExercicios'); }}
               style={styles.drawerItem}
             />
             <Drawer.Item
               icon="file-check"
               label="Validar Resumos"
-              onPress={() => { setDrawerVisible(false); navigation.navigate('SubmissoesResumos'); }}
+              onPress={() => { setDrawerVisible(false); navigation.navigate('GerirConteudos'); }}
               style={styles.drawerItem}
             />
-            <Drawer.Item
-              icon="chart-bar"
-              label="Ranking"
-              onPress={() => { setDrawerVisible(false); navigation.navigate('Ranking'); }}
-              style={styles.drawerItem}
-            />
+           
           </Drawer.Section>
         </View>
       )}

@@ -414,10 +414,18 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: 16,
-    borderRadius: 10,
-    marginBottom: 15,
-    elevation: 3,
+    borderRadius: 16,
+    marginBottom: 20,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
+
   label: {
     fontSize: 16,
     fontWeight: "bold",

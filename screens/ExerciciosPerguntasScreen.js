@@ -80,8 +80,9 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
       setErrorMessage("");
       const { data, error } = await supabase
         .from("perguntas")
-        .select("idpergunta, enunciado, tipo_pergunta, idmateria, texto, explicacao,resolucao, alternativas(*)")
-        .in("idmateria", selectedMaterias || []);
+        .select("idpergunta, enunciado, tipo_pergunta, idmateria, texto, explicacao,resolucao, alternativas(*), visivel")
+        .in("idmateria", selectedMaterias || [])
+        .eq("visivel", true);;
   
       if (error) {
         setErrorMessage("Erro ao carregar perguntas.");

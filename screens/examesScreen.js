@@ -89,6 +89,13 @@ export default function ExameScreen({ route, navigation }) {
     }
   };
 
+  useEffect(() => {
+  if (anoSelecionado && semestreSelecionado && userInfo?.idcurso) {
+    carregarDisciplinas(anoSelecionado, semestreSelecionado);
+  }
+  }, [anoSelecionado, semestreSelecionado, userInfo]);
+
+
   // ----------------------------------------------------------------------------
   // B) Se disciplinaPreSelecionada existe, buscar matérias dela
   // ----------------------------------------------------------------------------
@@ -97,6 +104,7 @@ export default function ExameScreen({ route, navigation }) {
       fetchMaterias(disciplinaPreSelecionada.iddisciplina);
     }
   }, [disciplinaPreSelecionada]);
+  
 
   // ----------------------------------------------------------------------------
   // C) Carregar Disciplinas via `curso_disciplina` (join c/ disciplinas)
@@ -192,11 +200,12 @@ export default function ExameScreen({ route, navigation }) {
   };
 
   const selecionarSemestre = (sem) => {
-    setSemestreSelecionado(sem);
-    if (anoSelecionado) {
-      carregarDisciplinas(anoSelecionado, sem);
-    }
+  setSemestreSelecionado(sem);
+  setDisciplinaSelecionada(null);
+  setMaterias([]);
+  setMateriasSelecionadas([]);
   };
+
 
   const selecionarDisciplina = (disc) => {
     setDisciplinaSelecionada(disc);
@@ -633,28 +642,31 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 15,
   },
-  disciplinaButton: {
-    backgroundColor: '#fff',
+    disciplinaButton: {
+    backgroundColor: "#fff",
     borderRadius: 16,
     paddingVertical: 16,
-    paddingHorizontal: 18,
-    marginBottom: 12,
-    shadowColor: '#000',
+    paddingHorizontal: 20,
+    margin: 8,
+    width: 160,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    alignItems: "center",
   },
   disciplinaSelecionada: {
-    backgroundColor: '#e8eaf6',
-    borderColor: '#d32f2f',
+    backgroundColor: "#e3f2fd",
+    borderColor: "#0056b3",
     borderWidth: 2,
   },
   disciplinaButtonText: {
-    color: '#1a237e',
-    fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1a237e",
   },
+
 
   selectedDiscContainer: {
     backgroundColor: whiteColor,
@@ -671,32 +683,33 @@ const styles = StyleSheet.create({
   },
 
   materiaButton: {
-    backgroundColor: '#fff',
-    borderColor: '#3949ab',
-    borderWidth: 2,
+    backgroundColor: "#fff",
     borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
+    padding: 16,
     marginBottom: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: "#ddd",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    alignItems: "center",
   },
   materiaSelecionada: {
-    backgroundColor: '#3949ab',
-    borderColor: '#d32f2f',
+    backgroundColor: "#e3f2fd",
+    borderColor: "#0056b3",
+    borderWidth: 2,
   },
   materiaText: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1a237e',
+    fontWeight: "600",
+    color: "#1a237e",
   },
   materiaTextSelecionada: {
-    color: '#fff',
+    color: "#fff",
   },
+
   disponiveisText: {
     fontSize: 14,
     color: "#333",
@@ -723,9 +736,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iniciarBotao: {
-    backgroundColor: primaryColor,
-    padding: 10,
-    borderRadius: 8,
-    width: "90%",
-  },
+  backgroundColor: "#0056b3",
+  paddingVertical: 14,
+  borderRadius: 16,
+  width: "90%",
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.2,
+  shadowRadius: 5,
+  elevation: 5,
+  alignItems: "center",
+},
 });

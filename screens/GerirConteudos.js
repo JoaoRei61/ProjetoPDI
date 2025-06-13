@@ -1,22 +1,51 @@
+// componentes/GerirConteudos.js
+
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { Text, Card, Checkbox, Button, ActivityIndicator, Caption } from 'react-native-paper';
+import { View, StyleSheet, FlatList, Alert, ScrollView } from 'react-native';
+import { Text, Card, Button, ActivityIndicator, Caption } from 'react-native-paper';
+import Header1 from '../componentes/header1';
 import { useAuth } from '../context/AuthProvider';
 import { useNavigation } from '@react-navigation/native';
+import supabase from '../supabaseconfig';
 
 export default function GerirConteudos() {
-  const { user, supabase } = useAuth();
+  const { user } = useAuth();
   const navigation = useNavigation();
   const [resumos, setResumos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Formata data ISO para 'DD/MM/YYYY HH:mm'
-  const formatDate = (isoString) => {
-    const d = new Date(isoString);
-    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString().slice(0,5);
+  // Mostrar pendentes e filtros
+  const [showPendentes, setShowPendentes] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Filtros
+  const [filtroDisciplina, setFiltroDisciplina] = useState('Todas');
+  const [filtroData, setFiltroData] = useState('Todas');
+  const [disciplinasDocente, setDisciplinasDocente] = useState([]);
+
+  // Formatar data
+  const formatDate = iso => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-PT') + ' ' + d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Busca resumos e nome de disciplina via join
+  // Carregar disciplinas do docente
+  const fetchDisciplinasDocente = async () => {
+    const { data, error } = await supabase
+      .from('docente_disciplina')
+      .select('iddisciplina')
+      .eq('iddocente', user.id);
+    if (!error) {
+      const ids = data.map(d => d.iddisciplina);
+      const { data: disci, error: err2 } = await supabase
+        .from('disciplinas')
+        .select('nome')
+        .in('iddisciplina', ids);
+      if (!err2) setDisciplinasDocente(['Todas', ...disci.map(d => d.nome)]);
+    }
+  };
+
+  // Carregar resumos
   const fetchResumos = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -24,28 +53,24 @@ export default function GerirConteudos() {
       .select('*, disciplina:disciplinas(nome)')
       .eq('idutilizador', user.id)
       .order('data_envio', { ascending: false });
-    if (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os resumos.');
-    } else {
-      setResumos(data);
-    }
+    if (error) Alert.alert('Erro', 'Não foi possível carregar os resumos.');
+    else setResumos(data);
     setLoading(false);
   };
 
-  useEffect(() => { fetchResumos(); }, []);
+  useEffect(() => {
+    fetchDisciplinasDocente();
+    fetchResumos();
+  }, []);
 
-  // Alterna estado entre 'aprovado' e null
-  const toggleAprovacao = async (item) => {
-    const novoEstado = item.estado === 'aprovado' ? null : 'aprovado';
+  // Atualizar estado
+  const atualizarEstado = async (item, novoEstado) => {
     const { error } = await supabase
       .from('resumos')
       .update({ estado: novoEstado })
       .eq('idresumo', item.idresumo);
-    if (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar o estado.');
-    } else {
-      setResumos(prev => prev.map(r => r.idresumo === item.idresumo ? { ...r, estado: novoEstado } : r));
-    }
+    if (error) Alert.alert('Erro', 'Não foi possível atualizar o estado.');
+    else setResumos(prev => prev.map(r => r.idresumo === item.idresumo ? { ...r, estado: novoEstado } : r));
   };
 
   const renderItem = ({ item }) => (
@@ -58,76 +83,156 @@ export default function GerirConteudos() {
       />
       <Card.Content>
         <Caption style={styles.disciplina}>Disciplina: {item.disciplina?.nome || '—'}</Caption>
-        <Caption style={styles.estado}>Estado: <Text style={[styles.estadoText, item.estado === 'aprovado' ? styles.aprovado : styles.pendente]}>{item.estado || 'pendente'}</Text></Caption>
       </Card.Content>
       <Card.Actions style={styles.actions}>
-        <View style={styles.checkboxContainer}>
-          <Checkbox
-            status={item.estado === 'aprovado' ? 'checked' : 'unchecked'}
-            onPress={() => toggleAprovacao(item)}
-            color="#4caf50"
-            uncheckedColor="#d32f2f"
-          />
-          <Text style={styles.checkboxLabel}>Aprovar</Text>
-        </View>
-        <Button
-          mode="contained"
-          onPress={() => navigation.navigate('PDFViewer', { pdfUrl: item.ficheiro })}
-          style={styles.pdfButton}
-          contentStyle={styles.pdfButtonContent}
-          labelStyle={styles.pdfButtonLabel}
-        >Ver PDF</Button>
+        {item.estado === 'pendente' ? (
+          <View style={styles.actionsRow}>
+            <Button mode="contained" onPress={() => atualizarEstado(item, 'aprovado')}>
+              Aprovar
+            </Button>
+            <Button mode="outlined" onPress={() => atualizarEstado(item, null)} style={styles.rejectButton}>
+              Recusar
+            </Button>
+          </View>
+        ) : (
+          <>          
+            <Button
+              mode={item.estado === 'aprovado' ? 'contained' : 'outlined'}
+              onPress={() => atualizarEstado(item, item.estado === 'aprovado' ? null : 'aprovado')}
+            >
+              {item.estado === 'aprovado' ? 'Desaprovar' : 'Aprovar'}
+            </Button>
+            <Button
+              mode="contained"
+              onPress={() => navigation.navigate('PDFViewer', { pdfUrl: item.ficheiro })}
+              style={styles.pdfButton}
+            >
+              Ver PDF
+            </Button>
+          </>
+        )}
       </Card.Actions>
     </Card>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.loader}>
-        <ActivityIndicator animating size="large" color="#6200ea" />
-      </View>
-    );
-  }
+  if (loading) return (
+    <View style={styles.loader}><ActivityIndicator animating size="large" /></View>
+  );
+
+  // Filtrar por estado
+  const pendentes = resumos.filter(r => r.estado === 'pendente');
+  const aprovados = resumos.filter(r => r.estado === 'aprovado');
+  const ocultos = resumos.filter(r => r.estado === null);
+
+  // Função de filtro adicional
+  const now = new Date();
+  const filtrarLista = lista => lista
+    .filter(r => filtroDisciplina === 'Todas' || r.disciplina?.nome === filtroDisciplina)
+    .filter(r => {
+      if (filtroData === 'Todas') return true;
+      const diff = now - new Date(r.data_envio);
+      if (filtroData === '24h') return diff <= 24*60*60*1000;
+      if (filtroData === 'Semana') return diff <= 7*24*60*60*1000;
+      if (filtroData === 'Mês') return diff <= 30*24*60*60*1000;
+      return true;
+    });
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={resumos}
-        keyExtractor={item => item.idresumo.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={<Text style={styles.emptyText}>Nenhum resumo encontrado.</Text>}
-      />
+    <View style={styles.flex}>
+      <Header1 title="Gerir Conteúdos" />
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.introText}>Pode gerir os seus conteúdos aqui!</Text>
+
+        {/* Botão de filtros */}
+        <Button mode="outlined" onPress={() => setShowFilters(f => !f)} style={styles.filterToggle}>
+          Filtros
+        </Button>
+
+        {/* Painel de Filtros */}
+        {showFilters && (
+          <View style={styles.filtersPanel}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              {disciplinasDocente.map(d => (
+                <Button
+                  key={d}
+                  mode={filtroDisciplina === d ? 'contained' : 'outlined'}
+                  onPress={() => setFiltroDisciplina(d)}
+                  style={styles.filterButton}
+                >{d}</Button>
+              ))}
+            </ScrollView>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              {['Todas','24h','Semana','Mês'].map(val => (
+                <Button
+                  key={val}
+                  mode={filtroData === val ? 'contained' : 'outlined'}
+                  onPress={() => setFiltroData(val)}
+                  style={styles.filterButton}
+                >
+                  {val === '24h' ? 'Últimas 24h' : val === 'Semana' ? 'Última Semana' : val === 'Mês' ? 'Último Mês' : 'Todas as Datas'}
+                </Button>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Seção Pendentes */}
+        <Button mode="outlined" onPress={() => setShowPendentes(p => !p)} style={styles.toggleButton}>
+          Resumos Pendentes ({pendentes.length})
+        </Button>
+        {showPendentes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Resumos Pendentes</Text>
+            <FlatList
+              data={filtrarLista(pendentes)}
+              keyExtractor={i => i.idresumo.toString()}
+              renderItem={renderItem}
+            />
+          </View>
+        )}
+
+        {/* Seção Aprovados */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumos Visíveis</Text>
+          <FlatList
+            data={filtrarLista(aprovados)}
+            keyExtractor={i => i.idresumo.toString()}
+            renderItem={renderItem}
+          />
+        </View>
+
+        {/* Seção Ocultos */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Resumos Ocultos</Text>
+          <FlatList
+            data={filtrarLista(ocultos)}
+            keyExtractor={i => i.idresumo.toString()}
+            renderItem={renderItem}
+          />
+        </View>
+
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f5' },
-  list: { padding: 16 },
-  card: {
-    marginBottom: 16,
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    backgroundColor: '#fff'
-  },
+  flex: { flex: 1, backgroundColor: '#f0f2f5' },
+  container: { padding: 16 },
+  introText: { fontSize: 18, fontWeight: '500', marginBottom: 12 },
+  filterToggle: { marginBottom: 12, alignSelf: 'flex-start' },
+  filtersPanel: { backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 16, elevation: 2 },
+  filterScroll: { marginBottom: 8 },
+  filterButton: { marginRight: 8 },
+  toggleButton: { marginVertical: 12, alignSelf: 'flex-start' },
+  section: { marginBottom: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8 },
+  card: { marginBottom: 12, borderRadius: 12, elevation: 4, backgroundColor: '#fff' },
   cardTitle: { fontWeight: 'bold', fontSize: 18, color: '#333' },
   cardSubtitle: { fontSize: 14, color: '#666' },
   disciplina: { marginTop: 4, fontSize: 13, color: '#555' },
-  estado: { marginTop: 2 },
-  estadoText: { fontWeight: 'bold' },
-  aprovado: { color: '#4caf50' },
-  pendente: { color: '#d32f2f' },
-  actions: { justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
-  checkboxContainer: { flexDirection: 'row', alignItems: 'center' },
-  checkboxLabel: { marginLeft: 4, fontSize: 14, color: '#333' },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
+  rejectButton: { marginLeft: 8 },
   pdfButton: { backgroundColor: '#6200ea', borderRadius: 6 },
-  pdfButtonContent: { paddingHorizontal: 12, paddingVertical: 6 },
-  pdfButtonLabel: { color: '#fff', fontWeight: 'bold' },
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emptyText: { textAlign: 'center', marginTop: 50, color: '#888' }
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });

@@ -11,14 +11,20 @@ import {
 
 
 // Exemplo de contexto de Auth e Supabase (ajusta conforme teu projeto)
+import LoadingScreen from "../screens/LoadingScreen";
 import { useAuth } from "../context/AuthProvider";
 import Header from "../componentes/header";
+import { Ionicons } from '@expo/vector-icons';
 
 const TABELA_RESUMOS = "resumos";
 
 
 export default function ResumosScreen({ route, navigation }) {
   const { supabase, user, loading } = useAuth();
+
+  //mostrar anos (Dropdown)
+  const [mostrarAnos, setMostrarAnos] = useState(false);
+
 
   // Caso venha "iddisciplina" via params
   const { iddisciplina } = route.params || {};
@@ -28,6 +34,7 @@ export default function ResumosScreen({ route, navigation }) {
   const [semestreSelecionado, setSemestreSelecionado] = useState(null);
   const [disciplinas, setDisciplinas] = useState([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState(null);
+  
 
   // Lista de resumos (apenas estado=true)
   const [resumos, setResumos] = useState([]);
@@ -80,6 +87,12 @@ export default function ResumosScreen({ route, navigation }) {
 
   // ================== 2) Se veio iddisciplina, buscar disciplina e resumos ==================
   useEffect(() => {
+    const carregarTudo = async () => {
+    setLoadingData(true);
+    // carregar dados...
+    setLoadingData(false);
+  };
+  carregarTudo();
     if (iddisciplina) {
       buscarDisciplinaESelecionar(iddisciplina);
     }
@@ -249,13 +262,9 @@ export default function ResumosScreen({ route, navigation }) {
   
   // ================== Render ==================
   if (loadingData) {
-    return (
-      <View style={styles.containerLoading}>
-        <Header />
-        <ActivityIndicator size="large" color="#0056b3" style={{ marginTop: 20 }} />
-      </View>
-    );
-  }
+  return <LoadingScreen />;
+}
+
 
   return (
     <View style={styles.container}>
@@ -273,25 +282,45 @@ export default function ResumosScreen({ route, navigation }) {
         {/* Escolha manual se não veio iddisciplina (ou não selecionou) */}
         {!disciplinaSelecionada && !iddisciplina && (
           <>
-            <Text style={styles.subtitle}>1) Escolha o Ano</Text>
             <View style={styles.anoContainer}>
-              {[1, 2, 3].map((ano) => (
-                <TouchableOpacity
-                  key={ano}
-                  style={[
-                    styles.anoButton,
-                    anoSelecionado === ano && styles.anoSelecionado,
-                  ]}
-                  onPress={() => selecionarAno(ano)}
-                >
-                  <Text style={styles.anoTexto}>{ano}º</Text>
-                </TouchableOpacity>
-              ))}
+              <TouchableOpacity
+                style={styles.dropdownBotao}
+                onPress={() => setMostrarAnos(!mostrarAnos)}
+              >
+                <Text style={styles.dropdownTexto}>Escolhe o Ano</Text>
+                <Ionicons name="chevron-down" size={20} color="#fff" />
+              </TouchableOpacity>
             </View>
+
+            {mostrarAnos && (
+              <View style={styles.anosDropdown}>
+                {[1, 2, 3].map((ano) => (
+                  <TouchableOpacity
+                    key={ano}
+                    style={anoSelecionado === ano ? styles.anoSelecionado : styles.ano}
+                    onPress={() => {
+                      setAnoSelecionado(ano);
+                      setMostrarAnos(false);
+                    }}
+                  >
+                    <Text style={styles.anoTexto}>{ano}º Ano</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
 
             {anoSelecionado && (
               <>
-                <Text style={styles.subtitle}>2) Escolha o Semestre</Text>
+                <View style={styles.anoBadge}>
+                  <Ionicons name="book-outline" size={20} color="#0d47a1" style={{ marginRight: 6 }} />
+                  <Text style={styles.anoBadgeTexto}>
+                    Estás a ver o {anoSelecionado}º Ano
+                  </Text>
+                </View>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolhe o Semestre</Text>
+                </View>
                 <View style={styles.semestreContainer}>
                   {[1, 2].map((sem) => (
                     <TouchableOpacity
@@ -311,7 +340,9 @@ export default function ResumosScreen({ route, navigation }) {
 
             {semestreSelecionado && (
               <>
-                <Text style={styles.subtitle}>3) Escolha a Disciplina</Text>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Escolha a disciplina</Text>
+                </View>
                 <View style={styles.disciplinasContainer}>
                   {disciplinesList(disciplinas, disciplinaSelecionada, selecionarDisciplina)}
                 </View>
@@ -323,9 +354,10 @@ export default function ResumosScreen({ route, navigation }) {
         {/* Mostrar disciplina selecionada */}
         {disciplinaSelecionada && (
           <View style={styles.selectedDiscContainer}>
-            <Text style={styles.selectedDiscText}>
-              Disciplina Selecionada: {disciplinaSelecionada.nome}
+            <Text style={styles.selecionadoTexto}>
+              Disciplina atual: <Text style={styles.disciplinaNome}>{disciplinaSelecionada.nome}</Text>
             </Text>
+
           </View>
         )}
 
@@ -408,6 +440,91 @@ const primaryColor = "#0056b3";
 const accentColor = "#d32f2f";
 
 const styles = StyleSheet.create({
+  disciplinaNome: {
+    color: "#0d47a1",
+    fontWeight: "bold",
+  },
+  selecionadoTexto: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1a237e",
+    backgroundColor: "#e8eaf6",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginVertical: 12,
+    textAlign: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1a237e',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 30,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  anoBadge: {
+    flexDirection: "row",
+    alignSelf: "center",
+    backgroundColor: "#d1c4e9",
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 25,
+    marginBottom: 20,
+    alignItems: "center",
+    shadowColor: "#aaa",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  anoBadgeTexto: {
+    color: "#1a237e",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  ano: {
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#c5cae9",
+    marginHorizontal: 10,
+    minWidth: 80,
+    alignItems: "center",
+  },
+  anosDropdown: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginVertical: 12,
+  },
+  dropdownTexto: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#fff",
+  },
+  dropdownBotao: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#3949ab",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
+  },
   containerLoading: {
     flex: 1,
     backgroundColor: "#f7f7f7",
@@ -448,7 +565,7 @@ const styles = StyleSheet.create({
   anoContainer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   anoButton: {
     backgroundColor: "#ccc",
@@ -457,12 +574,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   anoSelecionado: {
-    backgroundColor: primaryColor,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#3f51b5",
+    marginHorizontal: 10,
+    minWidth: 80,
+    alignItems: "center",
   },
   anoTexto: {
-    fontSize: 16,
     color: "#fff",
-    fontWeight: "bold",
+    fontWeight: "600",
   },
 
   semestreContainer: {
@@ -471,30 +592,44 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   semestreButton: {
-    backgroundColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginHorizontal: 10,
+    backgroundColor: "#e0e0e0",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    marginHorizontal: 6,
+    minWidth: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   semestreSelecionado: {
-    backgroundColor: primaryColor,
+    backgroundColor: "#0056b3",
   },
   semestreTexto: {
-    fontSize: 16,
-    color: "#fff",
-    fontWeight: "bold",
+    color: "#333",
+    fontWeight: "600",
   },
 
   disciplinaButton: {
     backgroundColor: "#fff",
-    borderColor: primaryColor,
-    borderWidth: 2,
-    borderRadius: 8,
-    padding: 10,
-    margin: 5,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   disciplinaSelecionada: {
-    borderColor: accentColor,
+    backgroundColor: "#e3f2fd",
+    borderColor: "#d32f2f",
+    borderWidth: 2,
   },
   disciplinaButtonText: {
     color: primaryColor,
@@ -503,12 +638,12 @@ const styles = StyleSheet.create({
   },
 
   selectedDiscContainer: {
-    backgroundColor: "rgb(157, 243, 243)",
+    backgroundColor: "rgb(186, 234, 234)",
     padding: 10,
     borderRadius: 30,
     marginVertical: 10,
     borderWidth: 1,
-    borderColor: "rgb(3, 66, 255)",
+    borderColor: "rgb(0, 0, 0)",
   },
   selectedDiscText: {
     fontSize: 16,
@@ -530,18 +665,24 @@ const styles = StyleSheet.create({
   },
 
   resumoCard: {
-    backgroundColor: "rgb(134, 245, 184)",
-    borderRadius: 40,
-    padding: 16,
-    marginBottom: 15,
-    elevation: 2,
-    width: "90%",
+    backgroundColor: "#e3f2fd", // azul suave
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 20,
+    width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 5,
+    borderLeftWidth: 6,
+    borderLeftColor: "#1a73e8",
   },
+
   resumoTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "rgb(30, 121, 45)",
-    marginBottom: 5,
+    color: "#fff",
   },
   resumoInfo: {
     fontSize: 14,
@@ -550,19 +691,26 @@ const styles = StyleSheet.create({
   },
   materiaNome: {
     fontSize: 14,
-    color: "rgb(59, 165, 103)",
-    fontStyle: "italic",
-    marginBottom: 6,
+    fontWeight: "600",
+    color: "#5e35b1",
+    textTransform: "uppercase",
+    marginBottom: 4,
   },
+
   autorNome: {
-    fontSize: 15,
-    fontWeight: "bold",
-    marginBottom: 2,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#3949ab",
+    marginBottom: 4,
   },
+
   dataEnvio: {
     fontSize: 12,
-    color: "rgb(59, 165, 103)",
+    color: "#757575",
+    fontStyle: "italic",
+    marginBottom: 8,
   },
+
   noResumosText: {
     color: "#000",
     fontSize: 16,

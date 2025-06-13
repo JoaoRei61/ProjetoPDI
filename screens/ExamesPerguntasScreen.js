@@ -65,6 +65,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         .select("*, alternativas(*)")
         .in("idmateria", selectedMaterias)
         .eq("tipo_pergunta", "EM")  // Filtrando apenas as perguntas do tipo "EM"
+        .eq("visivel", true) 
         .limit(numPerguntas);
 
       if (error) {
@@ -222,11 +223,20 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
 
               {/* Exibindo a imagem dentro da div correta */}
               {pergunta.enunciado ? (
+                <ScrollView
+                maximumZoomScale={3}
+                minimumZoomScale={1}
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                style={styles.imagemWrapper}
+                contentContainerStyle={styles.imagemWrapperContent}
+              >
                 <Image
-                  source={{ uri: pergunta.enunciado }} // Exibir imagem do Cloudinary
+                  source={{ uri: pergunta.enunciado }}
                   style={styles.imagem}
                   resizeMode="contain"
                 />
+              </ScrollView>
               ) : (
                 <Text style={styles.finalPerguntaTexto}>{pergunta.texto}</Text>
               )}
@@ -286,17 +296,27 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                   <View style={styles.perguntaContainer}>
                     <Text style={styles.perguntaText}>
                       {/* Exibindo a imagem dentro da pergunta */}
-                  {perguntas[perguntaAtual]?.enunciado ? (
-                    <Image
-                      source={{ uri: perguntas[perguntaAtual]?.enunciado }}
-                      style={styles.imagem}
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <Text style={styles.perguntaText}>
-                      {perguntas[perguntaAtual]?.texto}
-                    </Text>
-                  )}
+                      {perguntas[perguntaAtual]?.enunciado ? (
+                          <ScrollView
+                            maximumZoomScale={3}
+                            minimumZoomScale={1}
+                            showsHorizontalScrollIndicator={false}
+                            showsVerticalScrollIndicator={false}
+                            style={styles.imagemWrapper}
+                            contentContainerStyle={styles.imagemWrapperContent}
+                          >
+                            <Image
+                              source={{ uri: perguntas[perguntaAtual]?.enunciado }}
+                              style={styles.imagem}
+                              resizeMode="contain"
+                            />
+                          </ScrollView>
+                        ) : (
+                          <Text style={styles.perguntaText}>
+                            {perguntas[perguntaAtual]?.texto}
+                          </Text>
+                        )}
+
 
                     </Text>
                   </View>
@@ -363,6 +383,20 @@ const styles = StyleSheet.create({
     color: "#d32f2f",
     marginBottom: 20,
     textAlign: "center",
+  },
+  imagemWrapper: {
+    width: '100%',      // ou fixe como no outro: maxHeight: 300
+    maxHeight: 300,
+    marginVertical: 20,
+  },
+  imagemWrapperContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagem: {
+    width: 300,
+    height: 300,
+    borderRadius: 8,
   },
   perguntaContainer: {
     height: 200,
