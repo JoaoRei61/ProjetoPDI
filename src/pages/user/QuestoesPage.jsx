@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Card, ProgressBar, Button, Dropdown } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../helper/supabaseconfig";
+import LoadingScreen from "../../components/LoadingScreen";
 
 const QuestoesPage = () => {
   const [anoSelecionado, setAnoSelecionado] = useState(null);
@@ -9,6 +10,7 @@ const QuestoesPage = () => {
   const [dados, setDados] = useState({});
   const [ucExpandida, setUcExpandida] = useState(null);
   const [materiaSelecionada, setMateriaSelecionada] = useState(null);
+  const [carregando, setCarregando] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -85,6 +87,7 @@ const QuestoesPage = () => {
       const primeiroAno = Object.keys(estrutura)[0];
       setAnoSelecionado(primeiroAno);
       setSemestreSelecionado("semestre1");
+      setCarregando(false);
     };
 
     fetchDados();
@@ -114,6 +117,8 @@ const QuestoesPage = () => {
     dados[anoSelecionado] && dados[anoSelecionado][semestreSelecionado]
       ? Object.entries(dados[anoSelecionado][semestreSelecionado])
       : [];
+
+  if (carregando) return <LoadingScreen />;
 
   return (
     <Container className="py-5">
@@ -150,10 +155,7 @@ const QuestoesPage = () => {
           >
             <h5 className="fw-bold mb-2">{ucNome}</h5>
             <span className="small text-muted">
-              Exercícios:{" "}
-              {ucDados.totalDisciplina > 0
-                ? `${ucDados.totalDisciplina} no total`
-                : "ainda sem exercícios"}
+              Exercícios: {ucDados.totalDisciplina > 0 ? `${ucDados.totalDisciplina} no total` : "ainda sem exercícios"}
             </span>
             <ProgressBar
               now={ucDados.progresso}

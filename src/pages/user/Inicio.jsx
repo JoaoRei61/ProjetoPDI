@@ -6,6 +6,7 @@ import { BsQuestionCircle } from "react-icons/bs";
 import { MdEdit } from "react-icons/md";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../helper/supabaseconfig";
+import LoadingScreen from "../../components/LoadingScreen";
 import "./Inicio.css";
 
 const frasesMotivadoras = [
@@ -24,6 +25,7 @@ const Inicio = () => {
   const [nomeCompleto, setNomeCompleto] = useState("Utilizador");
   const [disciplinasPorAno, setDisciplinasPorAno] = useState({});
   const [frase, setFrase] = useState("");
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     const fetchDados = async () => {
@@ -66,6 +68,7 @@ const Inicio = () => {
 
       setDisciplinasPorAno(agrupado);
       setAnoSelecionado(Object.keys(agrupado)[0] || "1º ano");
+      setCarregando(false);
     };
 
     fetchDados();
@@ -113,6 +116,8 @@ const Inicio = () => {
       </Col>
     </Row>
   );
+
+  if (carregando) return <LoadingScreen />;
 
   return (
     <div className="pagina-inicio">

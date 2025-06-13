@@ -165,7 +165,6 @@ const Dashboard = () => {
                 <h3>{stats.totalUtilizadores}</h3>
               </div>
             </div>
-            <span style={{ backgroundColor: "#198754", padding: "0.3rem 0.6rem", borderRadius: "12px" }}>+12%</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem" }}>
             <ul style={{ listStyle: "none", paddingLeft: 0, fontSize: "0.9rem" }}>

@@ -9,13 +9,16 @@ import {
   FaSignOutAlt,
   FaPlusCircle,
   FaTrophy,
-  FaUserCircle
+  FaUserCircle,
+  FaHistory,
+  FaTools
 } from "react-icons/fa";
-import supabase from '../helper/supabaseconfig';
+import supabase from "../helper/supabaseconfig";
 
 const SidebarUser = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
   const [resumosPendentes, setResumosPendentes] = useState(0);
   const [tipoConta, setTipoConta] = useState("");
 
@@ -24,6 +27,15 @@ const SidebarUser = () => {
     if (error) throw error;
     navigate("/login");
   };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setCollapsed(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -48,7 +60,7 @@ const SidebarUser = () => {
             .select("iddisciplina")
             .eq("iddocente", userId);
 
-          idsDisciplinas = disciplinasDoDocente?.map(d => d.iddisciplina) || [];
+          idsDisciplinas = disciplinasDoDocente?.map((d) => d.iddisciplina) || [];
         }
 
         const { data: resumos } = await supabase
@@ -56,9 +68,10 @@ const SidebarUser = () => {
           .select("idresumo, iddisciplina, estado")
           .eq("estado", "pendente");
 
-        const pendentesVisiveis = tipo === "admin"
-          ? resumos
-          : resumos.filter(r => idsDisciplinas.includes(r.iddisciplina));
+        const pendentesVisiveis =
+          tipo === "admin"
+            ? resumos
+            : resumos.filter((r) => idsDisciplinas.includes(r.iddisciplina));
 
         setResumosPendentes(pendentesVisiveis.length);
       }
@@ -67,11 +80,89 @@ const SidebarUser = () => {
     fetchUserInfo();
   }, []);
 
+  const commonDocenteAdminMenu = [
+    {
+      label: "Adicionar Exercícios",
+      icon: <FaPlusCircle />,
+      path: "/user/adicionar-exercicios",
+    },
+    {
+      label: "Histórico de Exercícios",
+      icon: <FaHistory />,
+      path: "/user/historico-exercicios",
+    },
+    {
+      label: "Validar Resumos",
+      icon: <FaFileAlt />,
+      path: "/user/validar-resumos",
+      badge: resumosPendentes,
+    },
+    {
+      label: "Resumos",
+      icon: <FaFileAlt />,
+      path: "/user/resumos",
+    },
+    {
+      label: "Leaderboard",
+      icon: <FaTrophy />,
+      path: "/user/leaderboard",
+    },
+  ];
+
+  const alunoMenu = [
+    {
+      label: "Início",
+      icon: <FaHome />,
+      path: "/user/",
+    },
+    {
+      label: "Questões",
+      icon: <FaQuestionCircle />,
+      path: "/user/questoes",
+    },
+    {
+      label: "Modo Exame",
+      icon: <FaPenFancy />,
+      path: "/user/modo-exame",
+    },
+    {
+      label: "Resumos",
+      icon: <FaFileAlt />,
+      path: "/user/resumos",
+    },
+    {
+      label: "Leaderboard",
+      icon: <FaTrophy />,
+      path: "/user/leaderboard",
+    },
+  ];
+
+  const renderMenuItems = (items) =>
+    items.map(({ label, icon, path, badge }) => (
+      <MenuItem
+        key={path}
+        icon={icon}
+        active={location.pathname === path}
+        component={<Link to={path} />}
+      >
+        {!collapsed ? (
+          <div className="d-flex justify-content-between align-items-center">
+            <span>{label}</span>
+            {badge > 0 && (
+              <span className="badge bg-danger ms-2">{badge}</span>
+            )}
+          </div>
+        ) : (
+          badge > 0 && <span className="badge bg-danger">{badge}</span>
+        )}
+      </MenuItem>
+    ));
+
   return (
     <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar backgroundColor="#2d6baa">
+      <Sidebar collapsed={collapsed} backgroundColor="#2d6baa">
         <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-          <div>
+          {!collapsed && (
             <div className="d-flex justify-content-center p-3">
               <img
                 src="/imagens/logobranco.png"
@@ -85,106 +176,26 @@ const SidebarUser = () => {
                 }}
               />
             </div>
+          )}
 
-            <Menu
-              iconShape="circle"
-              menuItemStyles={{
-                button: ({ active }) => ({
-                  backgroundColor: active ? "#1f4d7a" : "transparent",
-                  fontWeight: active ? "bold" : "normal",
-                  color: "white",
-                  "&:hover": {
-                    backgroundColor: "#1f4d7a",
-                  },
-                }),
-              }}
-            >
-              {(tipoConta === "docente" || tipoConta === "admin") && (
-                <>
-                  <MenuItem
-                    icon={<FaPlusCircle />}
-                    active={location.pathname === "/user/adicionar-exercicios"}
-                    component={<Link to="/user/adicionar-exercicios" />}
-                  >
-                    Adicionar Exercícios
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaPlusCircle />}
-                    active={location.pathname === "/user/historico-exercicios"}
-                    component={<Link to="/user/historico-exercicios" />}
-                  >
-                    Histórico de Exercícios
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaFileAlt />}
-                    active={location.pathname === "/user/validar-resumos"}
-                    component={<Link to="/user/validar-resumos" />}
-                  >
-                    <div className="d-flex align-items-center justify-content-between w-100">
-                      <span>Validar Resumos</span>
-                      {resumosPendentes > 0 && (
-                        <span className="badge bg-danger ms-2">{resumosPendentes}</span>
-                      )}
-                    </div>
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaFileAlt />}
-                    active={location.pathname === "/user/resumos"}
-                    component={<Link to="/user/resumos" />}
-                  >
-                    Resumos
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaTrophy />}
-                    active={location.pathname === "/user/leaderboard"}
-                    component={<Link to="/user/leaderboard" />}
-                  >
-                    Leaderboard
-                  </MenuItem>
-                </>
-              )}
+          <Menu
+            iconShape="circle"
+            menuItemStyles={{
+              button: ({ active }) => ({
+                backgroundColor: active ? "#1f4d7a" : "transparent",
+                fontWeight: active ? "bold" : "normal",
+                color: "white",
+                "&:hover": {
+                  backgroundColor: "#1f4d7a",
+                },
+              }),
+            }}
+          >
+            {(tipoConta === "docente" || tipoConta === "admin") &&
+              renderMenuItems(commonDocenteAdminMenu)}
 
-              {tipoConta !== "docente" && (
-                <>
-                  <MenuItem
-                    icon={<FaHome />}
-                    active={location.pathname === "/user/"}
-                    component={<Link to="/user" />}
-                  >
-                    Início
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaQuestionCircle />}
-                    active={location.pathname === "/user/questoes"}
-                    component={<Link to="/user/questoes" />}
-                  >
-                    Questões
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaPenFancy />}
-                    active={location.pathname === "/user/modo-exame"}
-                    component={<Link to="/user/modo-exame" />}
-                  >
-                    Modo Exame
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaFileAlt />}
-                    active={location.pathname === "/user/resumos"}
-                    component={<Link to="/user/resumos" />}
-                  >
-                    Resumos
-                  </MenuItem>
-                  <MenuItem
-                    icon={<FaTrophy />}
-                    active={location.pathname === "/user/leaderboard"}
-                    component={<Link to="/user/leaderboard" />}
-                  >
-                    Leaderboard
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
-          </div>
+            {tipoConta === "aluno" && renderMenuItems(alunoMenu)}
+          </Menu>
 
           <div style={{ marginTop: "auto" }}>
             <Menu
@@ -205,11 +216,13 @@ const SidebarUser = () => {
               >
                 Perfil
               </MenuItem>
+
               {tipoConta === "admin" && (
-                <MenuItem onClick={() => navigate("/admin/dashboard")}>
-                  Ir para Administração
+                <MenuItem icon={<FaTools />} onClick={() => navigate("/admin/dashboard")}>
+                  Administração
                 </MenuItem>
               )}
+
               <MenuItem icon={<FaSignOutAlt />} onClick={logout}>
                 Sair
               </MenuItem>
