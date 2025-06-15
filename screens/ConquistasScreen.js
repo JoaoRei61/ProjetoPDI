@@ -420,9 +420,9 @@ const styles = StyleSheet.create({
 
   // Cards
   cardExercicios: {
-    backgroundColor: "#fff3e0",
+    backgroundColor: "#f0f4ff",
     borderLeftWidth: 6,
-    borderLeftColor: "#fb8c00",
+    borderLeftColor: "#0056b3",
     width: "100%",
     padding: 20,
     borderRadius: 16,
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
 
   // Barra de progresso
   progressContainer: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f9fbff",
     borderRadius: 8,
     padding: 12,
     marginTop: 12,
@@ -475,6 +475,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: "#4CAF50",
   },
   materiaText: {
     fontSize: 16,

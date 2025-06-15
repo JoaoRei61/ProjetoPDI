@@ -386,7 +386,7 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
                 Como correu a tua resposta?
               </Text>
               <TouchableOpacity
-                style={[styles.altButton, { backgroundColor: "#4CAF50" }]}
+                style={[styles.altButton, { backgroundColor: "#c8e6c9", borderColor: "#388e3c" }]}
                 onPress={async () => {
                   setRespostas(p => ({
                     ...p,
@@ -400,10 +400,10 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
                   });
                 }}
               >
-                <Text style={styles.altText}>Acertei</Text>
+                <Text style={[styles.altText, { color: "#1b5e20" }]}>✅ Acertei</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.altButton, { backgroundColor: "#f0ad4e" }]}
+                style={[styles.altButton, { backgroundColor: "#fff3cd", borderColor: "#ffc107" }]}
                 onPress={async () => {
                   setRespostas(p => ({
                     ...p,
@@ -417,10 +417,10 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
                   });
                 }}
               >
-                <Text style={styles.altText}>Incompleto</Text>
+                <Text style={[styles.altText, { color: "#795548" }]}>🟡 Incompleto</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.altButton, { backgroundColor: "#FF6347" }]}
+                style={[styles.altButton, { backgroundColor: "#ffcdd2", borderColor: "#d32f2f" }]}  
                 onPress={async () => {
                   setRespostas(p => ({
                     ...p,
@@ -434,7 +434,7 @@ export default function ExerciciosPerguntasScreen({ route, navigation }) {
                   });
                 }}
               >
-                <Text style={styles.altText}>Errei</Text>
+                <Text style={[styles.altText, { color: "#b71c1c" }]}>❌ Errei</Text>
               </TouchableOpacity>
             </View>
           )
@@ -479,27 +479,28 @@ const styles = StyleSheet.create({
   },
 
   botaoResolucao: {
-    backgroundColor: "#A97AD4",    
-    paddingVertical: 8,            
-    paddingHorizontal: 16,         
-    borderRadius: 12,             
+    backgroundColor: "rgb(72, 120, 190)",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginVertical: 10,
-
+    marginVertical: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,                  
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   botaoResolucaoText: {
-    color: "#FFF",                 
-    fontSize: 14,                  
-    fontWeight: "600",             
+    color: "rgb(255, 255, 255)",
+    fontSize: 17,
+    fontWeight: "600",
+    alignText: "center",
+    letterSpacing: 1,
   },
+
   resolucaoContainer: {
-    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 10,
     marginVertical: 20,
@@ -520,6 +521,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f7f7f7",
+    
   },
   imagemEnunciado: {
     width: "100%",
@@ -538,20 +540,23 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#d32f2f",
-    marginBottom: 20,
+    fontSize: 26,
+    fontWeight: "900",
+    color: "#1a237e",
     textAlign: "center",
+    marginBottom: 20,
+
   },
   infoText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 26,
+    color: "rgb(207, 63, 63)",
     textAlign: "center",
+    marginBottom: 170,
+    marginTop: 170,
   },
 
   perguntaContainer: {
-    backgroundColor: "#ddd",
+    backgroundColor: "#f0f4ff",
     borderRadius: 10,
     padding: 20,
     marginBottom: 20,
@@ -567,17 +572,27 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   altButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-    padding: 15,
-    marginVertical: 5,
+    backgroundColor: "#e3f2fd",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginVertical: 6,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#bbdefb",
   },
+
   altText: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontWeight: "600",
+    color: "#0d47a1",
   },
+
   altSelecionada: {
     backgroundColor: "#00FFFF",
   },
@@ -589,11 +604,17 @@ const styles = StyleSheet.create({
   },
 
   botaoSubmeter: {
-    backgroundColor: "#28A745",
+
+  backgroundColor: "#0056b3",
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
     marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   botaoSubmeterText: {
     color: "#fff",
@@ -602,7 +623,7 @@ const styles = StyleSheet.create({
   },
 
   explicacaoContainer: {
-    backgroundColor: "#f0f4ff",
+    backgroundColor: "#e8f0fe",
     borderRadius: 8,
     padding: 10,
     marginBottom: 20,
@@ -624,6 +645,12 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+
   },
   botaoProximoText: {
     color: "#fff",
@@ -637,6 +664,12 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+
   },
   botaoHistoricoText: {
     color: "#fff",
@@ -649,6 +682,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+
   },
   botaoSairText: {
     color: "#fff",
@@ -679,6 +718,12 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     marginTop: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+
   },
   botaoVoltarText: {
     color: "#fff",
@@ -693,6 +738,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 15,
     width: "100%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+
   },
   botaoGrandeText: {
     color: "#fff",

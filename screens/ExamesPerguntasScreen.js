@@ -187,13 +187,13 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
   const definirMensagemResultado = (nota) => {
     const notaNum = parseFloat(nota);
     if (notaNum >= 90) {
-      setMensagemResultado("🎉 Parabéns! Excelente desempenho!");
+      setMensagemResultado("🎉 Parabéns! És um mestre!");
     } else if (notaNum >= 70) {
-      setMensagemResultado("👏 Bom trabalho! Continue melhorando!");
+      setMensagemResultado("👏 Bom trabalho! Mas não está perfeito!");
     } else if (notaNum >= 50) {
-      setMensagemResultado("🤔 Você pode melhorar! Tente novamente!");
+      setMensagemResultado("🤔 Podes melhorar! Faz mais exames!");
     } else {
-      setMensagemResultado("📚 Não foi tão bem... Estude mais e tente de novo!");
+      setMensagemResultado("📚 Foi fraquinho... Estuda mais e faz mais exames!");
     }
   };
 
@@ -242,12 +242,16 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
               )}
 
               {pergunta.alternativas.map((alternativa) => {
-                const selecionada =
-                  respostaSelecionada === alternativa.idalternativa;
+                const selecionada = respostaSelecionada === alternativa.idalternativa;
+                const correta = alternativa.correta; // Supondo que tens este campo booleano
                 let estilo = [styles.alternativaButtonFinal];
 
-                if (selecionada) {
-                  estilo.push(acertou ? styles.certaButton : styles.erradaButton);
+                if (selecionada && correta) {
+                  estilo.push(styles.certaButton); // Caso especial onde o aluno acertou
+                } else if (selecionada && !correta) {
+                  estilo.push(styles.erradaButton); // A resposta errada escolhida
+                } else if (!selecionada && correta && !acertou) {
+                  estilo.push(styles.certaButton); // Mostrar a certa se o aluno errou
                 }
 
                 return (
@@ -269,7 +273,7 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
         })}
 
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>🔙 Voltar</Text>
+          <Text style={styles.backButtonText}>Voltar</Text>
         </TouchableOpacity>
       </ScrollView>
     );
@@ -347,21 +351,24 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
                 </>
               ) : (
                 <>
-                  <Text style={styles.title}>Quiz Finalizado</Text>
-                  <Text style={styles.resultadoTexto}>{mensagemResultado}</Text>
-                  <Text style={styles.resultadoPontuacao}>Resultado: {resultado}%</Text>
-                  {pontos !== null && (
-                    <Text style={styles.pontosText}>
-                      Você ganhou {pontos} pontos!
-                    </Text>
-                  )}
+                  <View style={styles.resultadoCard}>
+                    <Text style={styles.title}>🎓 Exame Finalizado</Text>
+                    <Text style={styles.resultadoTexto}>{mensagemResultado}</Text>
+                    <Text style={styles.resultadoPontuacao}>Resultado: {resultado}%</Text>
+                    {pontos !== null && (
+                      <Text style={styles.pontosText}>
+                        ⭐ Ganhaste {pontos} pontos no ranking global!
+                      </Text>
+                    )}
+                  </View>
+
 
                   <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-                    <Text style={styles.closeButtonText}>🔙 Voltar</Text>
+                    <Text style={styles.closeButtonText}>Voltar</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.closeButton} onPress={VisualizarTesteFinal}>
-                    <Text style={styles.closeButtonText}>👀 Visualizar Teste</Text>
+                    <Text style={styles.closeButtonText}>Visualizar Teste</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -374,6 +381,19 @@ const ExamesPerguntasScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  resultadoCard: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 24,
+    marginTop: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
   container: { flex: 1, backgroundColor: "#F4F4F9" },
   scrollContainer: { padding: 16, paddingBottom: 100 },
   loader: { marginTop: 20 },
@@ -385,22 +405,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   imagemWrapper: {
-    width: '100%',      // ou fixe como no outro: maxHeight: 300
-    maxHeight: 300,
-    marginVertical: 20,
-  },
+  width: '100%',
+  maxHeight: 300,
+  marginBottom: 15,
+  borderRadius: 10,
+  backgroundColor: "#f2f2f2",
+  alignSelf: "center",
+},
   imagemWrapperContent: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imagem: {
-    width: 300,
-    height: 300,
-    borderRadius: 8,
-  },
   perguntaContainer: {
     height: 200,
-    width: "90%",
+    width: "100%",
     backgroundColor: "#ddd",
     padding: 30,
     borderRadius: 10,
@@ -425,83 +443,96 @@ const styles = StyleSheet.create({
   },
   alternativaButton: {
     width: "90%",
-    paddingVertical: 20,
-    backgroundColor: "#007AFF",
-    marginVertical: 8,
-    borderRadius: 10,
+    paddingVertical: 18,
+    backgroundColor:  "#e3f2fd",
+    marginVertical: 10,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
+
   alternativaText: {
     fontSize: 17,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "#0d47a1",
     textAlign: "center",
   },
   selectedAnswer: {
     backgroundColor: "#00FFFF",
-    borderColor: "#0000FF",
+    borderColor: "#00FFFF",
     borderWidth: 2,
   },
   nextButton: {
-    width: "90%",
-    paddingVertical: 20,
-    backgroundColor: "#28A745",
-    borderRadius: 10,
+   backgroundColor: "#0056b3",
+    borderRadius: 8,
+    padding: 15,
     alignItems: "center",
-    justifyContent: "center",
-    alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
     elevation: 3,
   },
   nextButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#FFF",
+    color: "rgb(253, 253, 255)",
   },
   resultadoTexto: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 20,
+    fontWeight: "600",
     textAlign: "center",
-    marginBottom: 15,
-    color: "#333",
+    marginBottom: 12,
+    color: "#1a237e",
   },
   resultadoPontuacao: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#FF4500",
+    color: "#4CAF50",
     textAlign: "center",
     marginBottom: 10,
   },
   pontosText: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "600",
     textAlign: "center",
-    marginBottom: 20,
-    color: "#333",
+    color: "#37474f",
   },
   closeButton: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: "#0056b3",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    marginVertical: 10,
     width: "90%",
-    alignItems: "center",
-    marginTop: 15,
     alignSelf: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   closeButtonText: {
-    color: "#FFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  imagem: {
-    width: "90%",
-    height: 200,
-    borderRadius: 10,
-    marginVertical: 20,
-    alignSelf: "center",
-  },
+  color: "#ffffff",
+  fontSize: 16,
+  fontWeight: "600",
+  textTransform: "bold",
+},
+
+ imagem: {
+  width: "100%",
+  height: 300,
+  resizeMode: "contain",
+  borderRadius: 10,
+},
+
   // Tela Final
   scrollContainerFinal: { padding: 16, paddingBottom: 50 },
   titleFinal: {
@@ -512,52 +543,68 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   finalPerguntaContainer: {
-    backgroundColor: "#fff",
-    marginBottom: 20,
-    padding: 15,
-    borderRadius: 10,
-    elevation: 3,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 4,
   },
   finalPerguntaTitulo: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    ontSize: 17,
+    fontWeight: "700",
+    color: "#1a237e",
+    marginBottom: 10,
   },
   alternativaButtonFinal: {
-    backgroundColor: "#007AFF",
-    marginVertical: 5,
-    borderRadius: 8,
     padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#e3f2fd",
+    marginVertical: 6,
   },
   alternativaTextFinal: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 15,
+    color: "#0d47a1",
   },
   certaButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#c8e6c9", // verde claro
+    borderWidth: 1,
+    borderColor: "#388e3c",
   },
   erradaButton: {
-    backgroundColor: "#FF6347",
+    backgroundColor: "#ffcdd2", // vermelho claro
+    borderWidth: 1,
+    borderColor: "#d32f2f",
   },
   finalExplicacaoContainer: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: "#f0f4ff",
-    borderRadius: 8,
+    marginTop: 14,
+    padding: 12,
+    backgroundColor: "#e8f5e9",
+    borderRadius: 10,
+    borderLeftWidth: 5,
+    borderLeftColor: "#4caf50",
   },
   explicacaoTextoFinal: {
     fontSize: 14,
-    color: "#d32f2f",
+    color: "#2e7d32",
+    fontStyle: "italic",
   },
   backButton: {
-    backgroundColor: "#007AFF",
-    padding: 12,
-    borderRadius: 8,
-    width: "90%",
+    backgroundColor: "#0056b3",
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginVertical: 20,
+    marginHorizontal: 50,
     alignItems: "center",
-    marginTop: 15,
-    alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButtonText: {
     color: "#fff",

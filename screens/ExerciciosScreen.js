@@ -36,7 +36,7 @@ export default function ExerciciosScreen({ route, navigation }) {
   const [userInfo, setUserInfo] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(false); 
 
 
   useEffect(() => {
@@ -208,18 +208,16 @@ export default function ExerciciosScreen({ route, navigation }) {
     });
   };
 
-  if (loadingData || authLoading) {
+  if (loadingData || authLoading || loading) {
     return <LoadingScreen onFinish={null} />;
   }
 
   return (
     <View style={styles.container}>
       <Header />
-      <Text style={styles.welcome}>Olá, {user?.user_metadata?.nome || 'Aluno'}!</Text>
+      <Text style={styles.welcome}>Bem vindo à página de exercícios!</Text>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>
-          Selecione ano, semestre, disciplina e matéria
-        </Text>
+        
         {errorMessage ? (
           <LoadingScreen onFinish={null} />
         ) : null}
@@ -382,7 +380,9 @@ export default function ExerciciosScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   semestreSelecionado: {
-    backgroundColor: "#0056b3",
+    backgroundColor: "#e3f2fd",
+    borderColor: "#0056b3",
+    borderWidth: 2,
   },
   semestreContainer: {
     flexDirection: "row",
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   semestreButton: {
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "rgb(255, 255, 255)",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 16,
@@ -619,10 +619,17 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   footer: {
-    padding: 12,
+    padding: 20,
     borderTopWidth: 1,
     borderColor: "#ddd",
     backgroundColor: "#fff",
   },
-  startBtn: { backgroundColor: "#0056b3" },
+  startBtn: {backgroundColor: "#0056b3",
+  paddingVertical: 10,
+  borderRadius: 16,
+  width: "90%",
+  shadowOpacity: 0.2,
+  shadowRadius: 5,
+  elevation: 5,
+  alignItems: "center",},
 });

@@ -141,7 +141,7 @@ export default function GerirConteudos() {
     <View style={styles.flex}>
       <Header1 title="Gerir Conteúdos" />
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.introText}>Pode gerir os seus conteúdos aqui!</Text>
+        <Text style={styles.welcome}>Pode gerir os seus conteúdos aqui!</Text>
 
         {/* Botão de filtros */}
         <Button mode="outlined" onPress={() => setShowFilters(f => !f)} style={styles.filterToggle}>
@@ -194,22 +194,36 @@ export default function GerirConteudos() {
         {/* Seção Aprovados */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Resumos Visíveis</Text>
-          <FlatList
-            data={filtrarLista(aprovados)}
-            keyExtractor={i => i.idresumo.toString()}
-            renderItem={renderItem}
-          />
+          {filtrarLista(aprovados).length === 0 ? (
+            resumos.length === 0 || (filtrarLista(ocultos).length === 0 && filtrarLista(pendentes).length === 0) ? (
+              <Text style={styles.noResumosText}>Esta disciplina não tem resumos.</Text>
+            ) : (
+              <Text style={styles.noResumosText}>Não há resumos disponíveis de momento.</Text>
+            )
+          ) : (
+            <FlatList
+              data={filtrarLista(aprovados)}
+              keyExtractor={i => i.idresumo.toString()}
+              renderItem={renderItem}
+            />
+          )}
         </View>
 
+
         {/* Seção Ocultos */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Resumos Ocultos</Text>
-          <FlatList
-            data={filtrarLista(ocultos)}
-            keyExtractor={i => i.idresumo.toString()}
-            renderItem={renderItem}
-          />
-        </View>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Resumos Ocultos</Text>
+            {filtrarLista(ocultos).length === 0 ? (
+              <Text style={styles.noResumosText}>Não há resumos ocultos.</Text>
+            ) : (
+              <FlatList
+                data={filtrarLista(ocultos)}
+                keyExtractor={i => i.idresumo.toString()}
+                renderItem={renderItem}
+              />
+            )}
+          </View>
+
 
       </ScrollView>
     </View>
@@ -217,22 +231,84 @@ export default function GerirConteudos() {
 }
 
 const styles = StyleSheet.create({
+  noResumosText: {
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    color: '#607d8b',
+    fontStyle: 'italic',
+  },
+  welcome: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1a237e',
+    textAlign: 'center',
+    marginVertical: 30,
+  },
   flex: { flex: 1, backgroundColor: '#f0f2f5' },
   container: { padding: 16 },
   introText: { fontSize: 18, fontWeight: '500', marginBottom: 12 },
-  filterToggle: { marginBottom: 12, alignSelf: 'flex-start' },
-  filtersPanel: { backgroundColor: '#fff', padding: 12, borderRadius: 8, marginBottom: 16, elevation: 2 },
+  filterButton: {
+    marginRight: 8,
+    borderRadius: 12,
+    borderColor: '#0056b3',
+  },
+  filtersPanel: {
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 20,
+    elevation: 3,
+  },
+
   filterScroll: { marginBottom: 8 },
   filterButton: { marginRight: 8 },
   toggleButton: { marginVertical: 12, alignSelf: 'flex-start' },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 20, fontWeight: '600', marginBottom: 8 },
-  card: { marginBottom: 12, borderRadius: 12, elevation: 4, backgroundColor: '#fff' },
-  cardTitle: { fontWeight: 'bold', fontSize: 18, color: '#333' },
-  cardSubtitle: { fontSize: 14, color: '#666' },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0056b3',
+    marginBottom: 12,
+    marginLeft: 6
+  },
+
+  card: {
+    marginBottom: 16,
+    borderRadius: 16,
+    elevation: 5,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    paddingBottom: 8
+  },
+  cardTitle: {
+    fontWeight: 'bold',
+    fontSize: 18,
+    color: '#0d47a1',
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: '#607d8b',
+  },
+
   disciplina: { marginTop: 4, fontSize: 13, color: '#555' },
   actions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12 },
-  rejectButton: { marginLeft: 8 },
-  pdfButton: { backgroundColor: '#6200ea', borderRadius: 6 },
+  pdfButton: {
+    backgroundColor: '#0056b3',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    marginLeft: 10,
+  },
+  rejectButton: {
+    borderColor: '#e53935',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+  },
+
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });

@@ -4,6 +4,8 @@ import { Appbar, Avatar, Menu, Divider, Button, Drawer } from 'react-native-pape
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthProvider';
 import { Ionicons } from '@expo/vector-icons';
+import { TouchableWithoutFeedback } from 'react-native';
+
 
 const Header = () => {
   const { user, supabase } = useAuth();
@@ -171,58 +173,89 @@ const Header = () => {
             onPress={handleLogout}
             style={styles.logoutButton}
           >
-            Sair
+            Log Out
           </Button>
         </Menu>
       </Appbar.Header>
 
-      {/* Drawer lateral */}
       {drawerVisible && (
+  <TouchableWithoutFeedback onPress={() => setDrawerVisible(false)}>
+    <View style={styles.drawerOverlay}>
+      <TouchableWithoutFeedback>
         <View style={styles.drawerContainer}>
           <TouchableOpacity onPress={toggleDrawer} style={styles.drawerToggle}>
             <Ionicons name="menu" size={28} color="#fff" />
           </TouchableOpacity>
+
           <Drawer.Section style={styles.drawerSection}>
             <Drawer.Item 
               icon="home" 
               label="Início" 
-              onPress={() => navigation.navigate('PaginaInicial')} 
+              onPress={() => {
+                setDrawerVisible(false);
+                navigation.navigate('PaginaInicial');
+              }} 
               style={styles.drawerItem} 
             />
             <Drawer.Item 
               icon="file-document" 
               label="Exercícios" 
-              onPress={() => navigation.navigate('ExerciciosScreen')} 
+              onPress={() => {
+                setDrawerVisible(false);
+                navigation.navigate('ExerciciosScreen');
+              }} 
               style={styles.drawerItem} 
             />
             <Drawer.Item 
               icon="pencil" 
               label="Modo Exame" 
-              onPress={() => navigation.navigate('Exames')} 
+              onPress={() => {
+                setDrawerVisible(false);
+                navigation.navigate('Exames');
+              }} 
               style={styles.drawerItem} 
             />
             <Drawer.Item 
               icon="file-document-outline" 
               label="Resumos" 
-              onPress={() => navigation.navigate('Resumos')} 
+              onPress={() => {
+                setDrawerVisible(false);
+                navigation.navigate('Resumos');
+              }} 
               style={styles.drawerItem} 
             />
           </Drawer.Section>
         </View>
-      )}
+      </TouchableWithoutFeedback>
+    </View>
+  </TouchableWithoutFeedback>
+)}
+
     </>
   );
 };
 
 const styles = StyleSheet.create({
+  drawerOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  backgroundColor: 'rgba(0,0,0,0.2)',
+  zIndex: 99,
+},
+
   header: {
     backgroundColor: '#0056b3',
     justifyContent: 'space-between',
-    height: 100,
+    height: 90,
   },
   logoContainer: {
     flex: 1,
     alignItems: 'center',
+    marginTop:-10,
+    
   },
   logo: {
     width: 80,

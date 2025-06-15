@@ -238,14 +238,15 @@ export default function ExameScreen({ route, navigation }) {
         const { data, error } = await supabase
           .from("perguntas")
           .select("idpergunta")
-          .in("idmateria", materiasSelecionadas);
+          .in("idmateria", materiasSelecionadas)
+          .eq("tipo_pergunta", "EM");
 
         if (error) {
           console.error("Erro ao verificar perguntas disponíveis:", error);
           return;
         }
         const totalPerguntas = data?.length || 0;
-        setMaxPerguntasDisponiveis(totalPerguntas > 0 ? totalPerguntas : 1);
+        setMaxPerguntasDisponiveis(totalPerguntas > 0 ? totalPerguntas : 0);
         if (numPerguntas > totalPerguntas) {
           setNumPerguntas(totalPerguntas);
         }
@@ -294,13 +295,10 @@ export default function ExameScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <Header />
-      <Text style={styles.welcome}>Olá, {user?.user_metadata?.nome || 'Aluno'}!</Text>
+      <Text style={styles.welcome}>Bem vindo à página de exames!</Text>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>
-          Seleciona o ano, semestre, disciplina e matéria para o teste
-        </Text>
-
+       
         {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
 
         {/* Se não veio disciplina preSelecionada => escolha manual de ano, sem, disc */}
@@ -350,12 +348,12 @@ export default function ExameScreen({ route, navigation }) {
                     <TouchableOpacity
                       key={sem}
                       style={[
-                        styles.semestreButton,
-                        semestreSelecionado === sem && styles.semestreSelecionado,
+                        styles.disciplinaButton,
+                        semestreSelecionado === sem && styles.disciplinaSelecionada,
                       ]}
                       onPress={() => selecionarSemestre(sem)}
                     >
-                      <Text style={styles.semestreTexto}>{sem}º Semestre</Text>
+                      <Text style={styles.disciplinaTexto}>{sem}º Semestre</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -391,15 +389,6 @@ export default function ExameScreen({ route, navigation }) {
           </>
         )}
 
-        {/* Disciplina selecionada (por param ou manual) */}
-        {disciplinaSelecionada && (
-          <View style={styles.selectedDiscContainer}>
-            <Text style={styles.selectedDiscText}>
-              Disciplina Selecionada: {disciplinaSelecionada.nome}
-            </Text>
-          </View>
-        )}
-
         {/* Matérias */}
         {disciplinaSelecionada && (
           <>
@@ -433,7 +422,7 @@ export default function ExameScreen({ route, navigation }) {
               style={styles.slider}
               minimumValue={2}
               maximumValue={maxPerguntasDisponiveis}
-              step={2}
+              step={1}
               value={numPerguntas}
               onValueChange={(value) => setNumPerguntas(value)}
               minimumTrackTintColor="#0056b3"
@@ -611,31 +600,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 15,
   },
-  semestreButton: {
-    backgroundColor: "#e0e0e0",
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    marginHorizontal: 6,
-    minWidth: 100,
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  semestreSelecionado: {
-    backgroundColor: "#0056b3",
-  },
-  semestreTexto: {
-    color: "#333",
-    fontWeight: "600",
-  },
-  semestreTextoSelecionado: {
-    color: "#fff",
-  },
   disciplinasContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -676,11 +640,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: accentColor,
   },
-  selectedDiscText: {
-    fontSize: 16,
-    color: accentColor,
-    fontWeight: "600",
-  },
 
   materiaButton: {
     backgroundColor: "#fff",
@@ -707,7 +666,7 @@ const styles = StyleSheet.create({
     color: "#1a237e",
   },
   materiaTextSelecionada: {
-    color: "#fff",
+    color: "#1a237e",
   },
 
   disponiveisText: {
@@ -737,11 +696,9 @@ const styles = StyleSheet.create({
   },
   iniciarBotao: {
   backgroundColor: "#0056b3",
-  paddingVertical: 14,
+  paddingVertical: 10,
   borderRadius: 16,
   width: "90%",
-  shadowColor: "#000",
-  shadowOffset: { width: 0, height: 3 },
   shadowOpacity: 0.2,
   shadowRadius: 5,
   elevation: 5,

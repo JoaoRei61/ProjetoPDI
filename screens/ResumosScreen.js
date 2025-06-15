@@ -8,9 +8,6 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-
-
-// Exemplo de contexto de Auth e Supabase (ajusta conforme teu projeto)
 import LoadingScreen from "../screens/LoadingScreen";
 import { useAuth } from "../context/AuthProvider";
 import Header from "../componentes/header";
@@ -18,36 +15,19 @@ import { Ionicons } from '@expo/vector-icons';
 
 const TABELA_RESUMOS = "resumos";
 
-
 export default function ResumosScreen({ route, navigation }) {
   const { supabase, user, loading } = useAuth();
-
-  //mostrar anos (Dropdown)
   const [mostrarAnos, setMostrarAnos] = useState(false);
-
-
-  // Caso venha "iddisciplina" via params
   const { iddisciplina } = route.params || {};
-
-  // Estados para ano/sem e disciplina
   const [anoSelecionado, setAnoSelecionado] = useState(null);
   const [semestreSelecionado, setSemestreSelecionado] = useState(null);
   const [disciplinas, setDisciplinas] = useState([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState(null);
-  
-
-  // Lista de resumos (apenas estado=true)
   const [resumos, setResumos] = useState([]);
-
-  // Loading geral
   const [loadingData, setLoadingData] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-
-  // userInfo => { idcurso, ... }
   const [userInfo, setUserInfo] = useState(null);
 
-
-  // ================== 1) Validar user + buscar userInfo ==================
   useEffect(() => {
     if (!user && !loading) {
       Alert.alert("Sessão Expirada", "Por favor, faça login novamente.", [
@@ -85,18 +65,21 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== 2) Se veio iddisciplina, buscar disciplina e resumos ==================
+  useEffect(() => {
+    if (anoSelecionado && semestreSelecionado) {
+      carregarDisciplinas(anoSelecionado, semestreSelecionado);
+    }
+  }, [anoSelecionado, semestreSelecionado]);
+
   useEffect(() => {
     const carregarTudo = async () => {
-    setLoadingData(true);
-    // carregar dados...
-    setLoadingData(false);
-  };
-  carregarTudo();
+      setLoadingData(true);
+      setLoadingData(false);
+    };
+    carregarTudo();
     if (iddisciplina) {
       buscarDisciplinaESelecionar(iddisciplina);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iddisciplina]);
 
   const buscarDisciplinaESelecionar = async (idd) => {
@@ -123,7 +106,6 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== 3) Carregar Disciplinas do Curso (ano/semestre) ==================
   const carregarDisciplinas = async (ano, semestre) => {
     if (!userInfo?.idcurso) {
       setErrorMessage("Não foi possível identificar o curso do utilizador.");
@@ -137,15 +119,13 @@ export default function ResumosScreen({ route, navigation }) {
 
       const { data, error } = await supabase
         .from("curso_disciplina")
-        .select(
-          `
+        .select(`
           iddisciplina,
           disciplinas (
             iddisciplina,
             nome
           )
-        `
-        )
+        `)
         .eq("idcurso", userInfo.idcurso)
         .eq("ano", ano)
         .eq("semestre", semestre);
@@ -173,7 +153,6 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== 4) Carregar Resumos (estado=true) ==================
   const carregarResumos = async (idd) => {
     try {
       setLoadingData(true);
@@ -203,10 +182,7 @@ export default function ResumosScreen({ route, navigation }) {
         return;
       }
 
-      if (!resumosData || resumosData.length === 0) {
-        setErrorMessage("Não há resumos disponíveis para esta disciplina.");
-        return;
-      }
+      
 
       const arrResumos = resumosData.map((res) => {
         let autorTipo = "desconhecido";
@@ -238,13 +214,15 @@ export default function ResumosScreen({ route, navigation }) {
     }
   };
 
-  // ================== Selecionar Ano / Semestre / Disciplina ==================
   const selecionarAno = (ano) => {
     setAnoSelecionado(ano);
     setSemestreSelecionado(null);
-    setDisciplinas([]);
     setDisciplinaSelecionada(null);
     setResumos([]);
+    setDisciplinas([]);
+    if (semestreSelecionado) {
+      carregarDisciplinas(ano, semestreSelecionado);
+    }
   };
 
   const selecionarSemestre = (sem) => {
@@ -259,112 +237,96 @@ export default function ResumosScreen({ route, navigation }) {
     carregarResumos(disc.iddisciplina);
   };
 
-  
-  // ================== Render ==================
   if (loadingData) {
-  return <LoadingScreen />;
-}
-
+    return <LoadingScreen />;
+  }
 
   return (
     <View style={styles.container}>
       <Header />
-
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>
-          Selecione o ano, semestre e disciplina para ver os Resumos
-        </Text>
-
+        <Text style={styles.welcome}>Bem vindo à página de resumos!</Text>
         {errorMessage ? (
           <Text style={styles.errorMessage}>{errorMessage}</Text>
         ) : null}
 
-        {/* Escolha manual se não veio iddisciplina (ou não selecionou) */}
-        {!disciplinaSelecionada && !iddisciplina && (
-          <>
-            <View style={styles.anoContainer}>
+        {/* Seleção de Ano, Semestre e Disciplina - SEMPRE VISÍVEL */}
+        <View style={styles.anoContainer}>
+          <TouchableOpacity
+            style={styles.dropdownBotao}
+            onPress={() => setMostrarAnos(!mostrarAnos)}
+          >
+            <Text style={styles.dropdownTexto}>Escolhe o Ano</Text>
+            <Ionicons name="chevron-down" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        {mostrarAnos && (
+          <View style={styles.anosDropdown}>
+            {[1, 2, 3].map((ano) => (
               <TouchableOpacity
-                style={styles.dropdownBotao}
-                onPress={() => setMostrarAnos(!mostrarAnos)}
+                key={ano}
+                style={anoSelecionado === ano ? styles.anoSelecionado : styles.ano}
+                onPress={() => {
+                  setAnoSelecionado(ano);
+                  setMostrarAnos(false);
+                }}
               >
-                <Text style={styles.dropdownTexto}>Escolhe o Ano</Text>
-                <Ionicons name="chevron-down" size={20} color="#fff" />
+                <Text style={styles.anoTexto}>{ano}º Ano</Text>
               </TouchableOpacity>
-            </View>
-
-            {mostrarAnos && (
-              <View style={styles.anosDropdown}>
-                {[1, 2, 3].map((ano) => (
-                  <TouchableOpacity
-                    key={ano}
-                    style={anoSelecionado === ano ? styles.anoSelecionado : styles.ano}
-                    onPress={() => {
-                      setAnoSelecionado(ano);
-                      setMostrarAnos(false);
-                    }}
-                  >
-                    <Text style={styles.anoTexto}>{ano}º Ano</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-
-            {anoSelecionado && (
-              <>
-                <View style={styles.anoBadge}>
-                  <Ionicons name="book-outline" size={20} color="#0d47a1" style={{ marginRight: 6 }} />
-                  <Text style={styles.anoBadgeTexto}>
-                    Estás a ver o {anoSelecionado}º Ano
-                  </Text>
-                </View>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Escolhe o Semestre</Text>
-                </View>
-                <View style={styles.semestreContainer}>
-                  {[1, 2].map((sem) => (
-                    <TouchableOpacity
-                      key={sem}
-                      style={[
-                        styles.semestreButton,
-                        semestreSelecionado === sem && styles.semestreSelecionado,
-                      ]}
-                      onPress={() => selecionarSemestre(sem)}
-                    >
-                      <Text style={styles.semestreTexto}>{sem}º Semestre</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-
-            {semestreSelecionado && (
-              <>
-                <View style={styles.sectionHeader}>
-                  <Text style={styles.sectionTitle}>Escolha a disciplina</Text>
-                </View>
-                <View style={styles.disciplinasContainer}>
-                  {disciplinesList(disciplinas, disciplinaSelecionada, selecionarDisciplina)}
-                </View>
-              </>
-            )}
-          </>
-        )}
-
-        {/* Mostrar disciplina selecionada */}
-        {disciplinaSelecionada && (
-          <View style={styles.selectedDiscContainer}>
-            <Text style={styles.selecionadoTexto}>
-              Disciplina atual: <Text style={styles.disciplinaNome}>{disciplinaSelecionada.nome}</Text>
-            </Text>
-
+            ))}
           </View>
         )}
 
+        {anoSelecionado && (
+          <>
+            <View style={styles.anoBadge}>
+              <Ionicons name="book-outline" size={20} color="#0d47a1" style={{ marginRight: 6 }} />
+              <Text style={styles.anoBadgeTexto}>
+                Estás a ver o {anoSelecionado}º Ano
+              </Text>
+            </View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Escolhe o Semestre</Text>
+            </View>
+            <View style={styles.semestreContainer}>
+              {[1, 2].map((sem) => (
+                <TouchableOpacity
+                  key={sem}
+                  style={[
+                    styles.semestreButton,
+                    semestreSelecionado === sem && styles.semestreSelecionado,
+                  ]}
+                  onPress={() => selecionarSemestre(sem)}
+                >
+                  <Text style={styles.semestreTexto}>{sem}º Semestre</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
-        {/* Lista de Resumos */}
+        {semestreSelecionado && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Escolha a disciplina</Text>
+            </View>
+            <View style={styles.disciplinasContainer}>
+              {disciplinesList(disciplinas, disciplinaSelecionada, selecionarDisciplina)}
+            </View>
+          </>
+        )}
+
+        {/* Mostra disciplina e resumos */}
         {disciplinaSelecionada && (
           <>
+            <View style={styles.selectedDiscContainer}>
+              <Text style={styles.selecionadoTexto}>
+                Disciplina atual:{" "}
+                <Text style={styles.disciplinaNome}>{disciplinaSelecionada.nome}</Text>
+              </Text>
+            </View>
+
             <Text style={styles.subtitle}>Resumos Disponíveis</Text>
             {resumos.length > 0 ? (
               resumos.map((res) => {
@@ -376,25 +338,20 @@ export default function ResumosScreen({ route, navigation }) {
                   <TouchableOpacity
                     key={res.idresumo}
                     style={styles.resumoCard}
-                    onPress={() => {
-                      navigation.navigate("PDFViewer", {
-                        pdfUrl: res.ficheiro,
-                      });
-                    }}
+                    onPress={() =>
+                      navigation.navigate("PDFViewer", { pdfUrl: res.ficheiro })
+                    }
                   >
                     <Text style={styles.resumoTitle}>{res.nome}</Text>
                     <Text style={styles.resumoInfo}>
                       Ficheiro: {res.ficheiro ? "Disponível" : "Não informado"}
                     </Text>
-
                     <Text style={styles.materiaNome}>
                       Matéria: {res.materiaNome}
                     </Text>
-
                     <Text style={[styles.autorNome, { color: res.autorColor }]}>
                       Disponibilizado por: {autorLabel}
                     </Text>
-
                     <Text style={styles.dataEnvio}>
                       {res.data_envio
                         ? `Enviado em: ${new Date(res.data_envio).toLocaleDateString()}`
@@ -404,29 +361,32 @@ export default function ResumosScreen({ route, navigation }) {
                 );
               })
             ) : (
-              <Text style={styles.noResumosText}>
-                Nenhum resumo verificado para esta disciplina.
-              </Text>
+             <View style={styles.selectedDiscContainer}>
+                <View style={styles.selecionadoTexto1}>
+                  <Text style={styles.sectionTitle1}>
+                    Nenhum resumo verificado para esta disciplina.
+                  </Text>
+                </View>
+              </View>
+
+
+
+
             )}
           </>
         )}
       </ScrollView>
-      
     </View>
   );
 }
 
-/** Pequeno helper para renderizar as disciplinas */
 function disciplinesList(disciplinas, disciplinaSelecionada, callbackSelect) {
   return disciplinas.map((disc) => {
     const sel = disciplinaSelecionada?.iddisciplina === disc.iddisciplina;
     return (
       <TouchableOpacity
         key={disc.iddisciplina}
-        style={[
-          styles.disciplinaButton,
-          sel && styles.disciplinaSelecionada,
-        ]}
+        style={[styles.disciplinaButton, sel && styles.disciplinaSelecionada]}
         onPress={() => callbackSelect(disc)}
       >
         <Text style={styles.disciplinaButtonText}>{disc.nome}</Text>
@@ -435,11 +395,19 @@ function disciplinesList(disciplinas, disciplinaSelecionada, callbackSelect) {
   });
 }
 
+
 // ================== STYLES ==================
 const primaryColor = "#0056b3";
 const accentColor = "#d32f2f";
 
 const styles = StyleSheet.create({
+   welcome: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#1a237e',
+    textAlign: 'center',
+    marginVertical: 30,},
+
   disciplinaNome: {
     color: "#0d47a1",
     fontWeight: "bold",
@@ -460,10 +428,31 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  selecionadoTexto1: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "rgb(231, 118, 118)",
+    backgroundColor: "rgb(231, 118, 118)",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    marginVertical: 12,
+    textAlign: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
     color: '#1a237e',
+  },
+   sectionTitle1: {
+    fontSize: 15,
+    fontWeight: '600',
+    color:"rgb(145, 45, 38)",
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -539,10 +528,10 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: "center",
   },
-  title: {
-    fontSize: 20,
+ title: {
+    fontSize: 22,
     fontWeight: "bold",
-    color: "#000",
+    color: accentColor,
     marginBottom: 20,
     textAlign: "center",
   },
@@ -557,7 +546,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 25,
     marginBottom: 10,
-    color: "rgb(223, 129, 142)",
+    color: "rgb(43, 45, 165)",
     alignSelf: "flex-start",
     marginLeft: 15,
   },
@@ -592,7 +581,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   semestreButton: {
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "rgb(255, 255, 255)",
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 16,
@@ -607,7 +596,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   semestreSelecionado: {
-    backgroundColor: "#0056b3",
+    backgroundColor: "rgb(184, 234, 243)",
+    borderColor: "rgb(9, 44, 243)",
+    borderWidth: 2,
   },
   semestreTexto: {
     color: "#333",
@@ -627,8 +618,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   disciplinaSelecionada: {
-    backgroundColor: "#e3f2fd",
-    borderColor: "#d32f2f",
+    backgroundColor: "rgb(184, 234, 243)",
+    borderColor: "rgb(9, 44, 243)",
     borderWidth: 2,
   },
   disciplinaButtonText: {
@@ -638,7 +629,7 @@ const styles = StyleSheet.create({
   },
 
   selectedDiscContainer: {
-    backgroundColor: "rgb(186, 234, 234)",
+    backgroundColor: "rgb(186, 204, 234)",
     padding: 10,
     borderRadius: 30,
     marginVertical: 10,
@@ -665,55 +656,59 @@ const styles = StyleSheet.create({
   },
 
   resumoCard: {
-    backgroundColor: "#e3f2fd", // azul suave
-    borderRadius: 18,
-    padding: 20,
-    marginBottom: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
     width: "100%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 5,
     borderLeftWidth: 6,
-    borderLeftColor: "#1a73e8",
+    borderLeftColor: "#0056b3",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
+
 
   resumoTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#fff",
-  },
-  resumoInfo: {
-    fontSize: 14,
-    color: "rgb(59, 165, 103)",
+    color: "#1a237e",
     marginBottom: 8,
   },
-  materiaNome: {
+
+  resumoInfo: {
     fontSize: 14,
+    color: "#37474f",
+    marginBottom: 6,
+  },
+
+  materiaNome: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#5e35b1",
-    textTransform: "uppercase",
+    color: "#00695c",
     marginBottom: 4,
   },
 
+
   autorNome: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#3949ab",
+    fontSize: 13,
+    color: "#5d4037",
     marginBottom: 4,
+    fontStyle: "italic",
   },
 
   dataEnvio: {
     fontSize: 12,
     color: "#757575",
-    fontStyle: "italic",
-    marginBottom: 8,
+    marginTop: 4,
   },
+
 
   noResumosText: {
     color: "#000",
-    fontSize: 16,
+    fontSize: 20,
     textAlign: "center",
     marginTop: 20,
   },

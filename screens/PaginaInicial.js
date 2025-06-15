@@ -141,9 +141,9 @@ const PaginaInicial = ({ navigation }) => {
   }
 
   return (
+    <>
+    <Header navigation={navigation} />
     <SafeAreaView style={styles.container}>
-      <Header navigation={navigation} />
-
       <ScrollView style={styles.contentContainer}>
         <Text style={styles.welcome}>Olá, {nome || 'Aluno'}!</Text>
 
@@ -273,6 +273,7 @@ const PaginaInicial = ({ navigation }) => {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 };
 

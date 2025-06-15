@@ -13,12 +13,15 @@ LogBox.ignoreLogs([
   'Warning: Text strings must be rendered within a <Text> component',
   'Warning: ref.measureLayout must be called with a ref to a native component.',
   'Warning: useInsertionEffect must not schedule updates',
+  'Warning: Invalid prop `compact` supplied to `React.Fragment`',
+  'VirtualizedLists should never be nested inside plain ScrollViews',
 ]);
 
 // Telas do app
 import PaginaInicial from './screens/PaginaInicial';
+
 import GerirConteudos from './screens/GerirConteudos';
-import GerirConta from './screens/GerirConta';
+import GerirExercicios from './screens/GerirExercicios';
 import PaginaInicial1 from './screens/PaginaInicial1';
 import PDFViewerScreen from './screens/PDFViewerScreen';
 import ExerciciosScreen from './screens/ExerciciosScreen';
@@ -33,6 +36,8 @@ import ConquistasScreen from './screens/ConquistasScreen';
 import ResumosScreen from './screens/ResumosScreen';
 import RankingScreen from './screens/RankingScreen';
 import SplashScreen from './screens/SplashScreen';
+import GerirConta from './screens/GerirConta';
+
 
 const Stack = createStackNavigator();
 
@@ -58,6 +63,7 @@ function AppNavigator() {
         <>
           <Stack.Screen name="PaginaInicial" component={PaginaInicial} />
           <Stack.Screen name="GerirConteudos" component={GerirConteudos} />
+          <Stack.Screen name="GerirExercicios" component={GerirExercicios} />
           <Stack.Screen name="GerirConta" component={GerirConta} />
           <Stack.Screen name="PaginaInicial1" component={PaginaInicial1} />
           <Stack.Screen name="PDFViewer" component={PDFViewerScreen} />

@@ -11,7 +11,8 @@ import {
   Alert
 } from 'react-native';
 import supabase from '../supabaseconfig';
-import LoadingScreen from '../screens/LoadingScreen'; // nova linha 11
+import LoadingScreen from '../screens/LoadingScreen';
+import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 
 
 const CriarContaScreen = ({ navigation }) => {
@@ -152,134 +153,144 @@ const CriarContaScreen = ({ navigation }) => {
   if (loading) return <LoadingScreen onFinish={null} />;
 
   return (
-    <View style={styles.container}>
-      <Image 
-        source={require("../assets/logo.jpeg")} 
-        style={styles.logo} 
-      />
-      <Text style={styles.title}>Criar Conta</Text>
+  <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    keyboardVerticalOffset={40}
+  >
+    <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+      <View style={styles.container}>
+        <Image 
+          source={require("../assets/logo.jpeg")} 
+          style={styles.logo} 
+        />
+        <Text style={styles.title}>Criar Conta</Text>
 
-      <TextInput 
-        style={styles.input} 
-        placeholder="Nome" 
-        value={nome} 
-        onChangeText={setNome} 
-      />
-      <TextInput 
-        style={styles.input} 
-        placeholder="Apelido" 
-        value={apelido} 
-        onChangeText={setApelido} 
-      />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Nome" 
+          value={nome} 
+          onChangeText={setNome} 
+        />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Apelido" 
+          value={apelido} 
+          onChangeText={setApelido} 
+        />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Username" 
+          value={username} 
+          onChangeText={setUsername} 
+        />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Nº de telemóvel" 
+          value={telefone} 
+          onChangeText={setTelefone} 
+          keyboardType="phone-pad" 
+        />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Email" 
+          value={email} 
+          onChangeText={setEmail} 
+          keyboardType="email-address" 
+        />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Palavra-passe" 
+          value={palavrapasse} 
+          onChangeText={setPalavrapasse} 
+          secureTextEntry 
+        />
 
-      <TextInput 
-        style={styles.input} 
-        placeholder="Username" 
-        value={username} 
-        onChangeText={setUsername} 
-      />
+        {/* Botão que abre o Modal para escolher o curso */}
+        <TouchableOpacity 
+          style={styles.courseButton} 
+          onPress={() => setModalVisible(true)}
+        >
+          <Text style={styles.courseButtonText}>
+            {cursoSelecionado 
+              ? cursos.find(c => c.idcurso === cursoSelecionado)?.nome 
+              : "Selecionar Curso"
+            }
+          </Text>
+        </TouchableOpacity>
 
-      <TextInput 
-        style={styles.input} 
-        placeholder="Nº de telemóvel" 
-        value={telefone} 
-        onChangeText={setTelefone} 
-        keyboardType="phone-pad" 
-      />
-      <TextInput 
-        style={styles.input} 
-        placeholder="Email" 
-        value={email} 
-        onChangeText={setEmail} 
-        keyboardType="email-address" 
-      />
-      <TextInput 
-        style={styles.input} 
-        placeholder="Palavra-passe" 
-        value={palavrapasse} 
-        onChangeText={setPalavrapasse} 
-        secureTextEntry 
-      />
-
-      {/* Botão que abre o Modal para escolher o curso */}
-      <TouchableOpacity 
-        style={styles.courseButton} 
-        onPress={() => setModalVisible(true)}
-      >
-        <Text style={styles.courseButtonText}>
-          {cursoSelecionado 
-            ? cursos.find(c => c.idcurso === cursoSelecionado)?.nome 
-            : "Selecionar Curso"
-          }
-        </Text>
-      </TouchableOpacity>
-
-      {/* Modal para lista de cursos */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <FlatList
-              data={cursos}
-              keyExtractor={(item) => item.idcurso.toString()}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={styles.courseItem}
-                  onPress={() => {
-                    setCursoSelecionado(item.idcurso);
-                    setModalVisible(false);
-                  }}
-                >
-                  <Text style={styles.courseItemText}>{item.nome}</Text>
-                </TouchableOpacity>
-              )}
-            />
-            <TouchableOpacity 
-              style={styles.closeButton} 
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Fechar</Text>
-            </TouchableOpacity>
+        {/* Modal para lista de cursos */}
+        <Modal visible={modalVisible} animationType="slide" transparent>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <FlatList
+                data={cursos}
+                keyExtractor={(item) => item.idcurso.toString()}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.courseItem}
+                    onPress={() => {
+                      setCursoSelecionado(item.idcurso);
+                      setModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.courseItemText}>{item.nome}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.closeButtonText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Botão para criar conta */}
-      <TouchableOpacity style={styles.button} onPress={criarConta}>
-        <Text style={styles.buttonText}>Criar Conta</Text>
-      </TouchableOpacity>
+        {/* Botão para criar conta */}
+        <TouchableOpacity style={styles.button} onPress={criarConta}>
+          <Text style={styles.buttonText}>Criar Conta</Text>
+        </TouchableOpacity>
 
-      {/* Link para ir ao Login */}
-      <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-        <Text style={styles.loginText}>Já tem conta? Faça login</Text>
-      </TouchableOpacity>
+        {/* Link para ir ao Login */}
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.loginText}>Já tem conta? Faça login</Text>
+        </TouchableOpacity>
 
-      {/* Modal de confirmação de email */}
-      <Modal visible={emailModalVisible} transparent animationType="fade">
-        <View style={styles.modalContainer}>
-          <View style={styles.emailModalContent}>
-            <Text style={styles.emailModalTitle}>📩 Aceda ao seu Email para verificar a conta</Text>
-            <Text style={styles.emailModalNote}>
-              Nota: Ao confirmar o email, serás redirecionado para uma página que aparecerá NOT FOUND, 
-              não ligues pois o email ficará verificado.
-            </Text>
-            <TouchableOpacity 
-              style={styles.emailModalButton} 
-              onPress={() => {
-                setEmailModalVisible(false);
-                navigation.navigate('Login');
-              }}
-            >
-              <Text style={styles.emailModalButtonText}>Entendi, proceder ao login</Text>
-            </TouchableOpacity>
+        {/* Modal de confirmação de email */}
+        <Modal visible={emailModalVisible} transparent animationType="fade">
+          <View style={styles.modalContainer}>
+            <View style={styles.emailModalContent}>
+              <Text style={styles.emailModalTitle}>📩 Aceda ao seu Email para verificar a conta</Text>
+              <Text style={styles.emailModalNote}>
+                Nota: Ao confirmar o email, serás redirecionado para uma página que aparecerá NOT FOUND, 
+                não ligues pois o email ficará verificado.
+              </Text>
+              <TouchableOpacity 
+                style={styles.emailModalButton} 
+                onPress={() => {
+                  setEmailModalVisible(false);
+                  navigation.navigate('Login');
+                }}
+              >
+                <Text style={styles.emailModalButtonText}>Entendi, proceder ao login</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </View>
-  );
+        </Modal>
+      </View>
+    </ScrollView>
+  </KeyboardAvoidingView>
+);
 };
 
 // Mantendo todos os estilos originais
 const styles = StyleSheet.create({
+  scrollContainer: {
+  flexGrow: 1,
+  justifyContent: 'center',
+},
   container: {
     flex: 1,
     padding: 20,
