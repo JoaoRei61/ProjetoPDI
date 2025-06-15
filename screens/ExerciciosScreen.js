@@ -340,32 +340,42 @@ export default function ExerciciosScreen({ route, navigation }) {
             <View style={styles.sectionHeader}>
                   <Text style={styles.sectionTitle}>Escolhe a(s) Matéria(s)</Text>
                 </View>
-            {materias.map((m) => {
-                const sel = materiasSelecionadas.includes(m.idmateria);
-                const { total = 0, resolved = 0, correct = 0 } =
-                materiaProgress[m.idmateria] || {};
-               const pctResolved = total ? (resolved / total) * 100 : 0;
-                const pctCorrect = total ? (correct / total) * 100 : 0;
+            {materias.length === 0 ? (
+  <Text style={styles.noMateriasText}>Não há matérias disponíveis.</Text>
+) : (
+  materias.map((m) => {
+    const sel = materiasSelecionadas.includes(m.idmateria);
+    const { total = 0, resolved = 0, correct = 0 } =
+      materiaProgress[m.idmateria] || {};
+    const pctResolved = total ? (resolved / total) * 100 : 0;
+    const pctCorrect = total ? (correct / total) * 100 : 0;
 
-          return (
-            <TouchableOpacity
-              key={m.idmateria}
-              style={[styles.materiaBtn, sel && styles.materiaBtnSelected]}
-              onPress={() => toggleMateriaSelecionada(m.idmateria)}
-            >
-              <Text style={[styles.materiaText, sel && styles.materiaTextSelected]}>
-                {m.nome}
-              </Text>
-              <View style={styles.dualBarBg}>
-                <View style={[styles.dualBarResolved, { width: `${pctResolved}%` }]} />
-                <View style={[styles.dualBarCorrect, { width: `${pctCorrect}%` }]} />
-              </View>
-              <Text style={styles.progressLabel}>
-                {resolved}/{total} resolvidas, {correct}/{total} corretas
-              </Text>
-            </TouchableOpacity>
-          );
-          })}
+    return (
+      <TouchableOpacity
+        key={m.idmateria}
+        style={[styles.materiaBtn, sel && styles.materiaBtnSelected]}
+        onPress={() => toggleMateriaSelecionada(m.idmateria)}
+      >
+        <Text
+          style={[styles.materiaText, sel && styles.materiaTextSelected]}
+        >
+          {m.nome}
+        </Text>
+        <View style={styles.dualBarBg}>
+          <View
+            style={[styles.dualBarResolved, { width: `${pctResolved}%` }]}
+          />
+          <View
+            style={[styles.dualBarCorrect, { width: `${pctCorrect}%` }]}
+          />
+        </View>
+        <Text style={styles.progressLabel}>
+          {resolved}/{total} resolvidas, {correct}/{total} corretas
+        </Text>
+      </TouchableOpacity>
+    );
+  })
+)}
           </>
         )}
       </ScrollView>
@@ -379,6 +389,17 @@ export default function ExerciciosScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+  noMateriasText: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    color: '#607d8b',
+    marginTop: 20,
+    backgroundColor: '#e3f2fd',
+    padding: 12,
+    borderRadius: 12,
+    marginHorizontal: 20,
+  },
   semestreSelecionado: {
     backgroundColor: "#e3f2fd",
     borderColor: "#0056b3",
