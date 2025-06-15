@@ -1,15 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Container, Card, Badge, Button, Alert } from "react-bootstrap";
 import { useLocation } from "react-router-dom";
 import supabase from "../../helper/supabaseconfig";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const TestePage = () => {
   const location = useLocation();
-  const {
-    materiasSelecionadas,
-    quantidadeExercicios,
-    disciplina
-  } = location.state;
+  const { materiasSelecionadas, quantidadeExercicios, disciplina } = location.state;
 
   const [perguntas, setPerguntas] = useState([]);
   const [respostas, setRespostas] = useState({});
@@ -19,7 +17,12 @@ const TestePage = () => {
   const [pontuacao, setPontuacao] = useState(0);
   const [indexAtual, setIndexAtual] = useState(0);
 
+  const carregadoRef = useRef(false);
+
   useEffect(() => {
+    if (carregadoRef.current) return;
+    carregadoRef.current = true;
+
     const carregarPerguntas = async () => {
       const { data: materiasData } = await supabase
         .from("materia")
@@ -46,15 +49,16 @@ const TestePage = () => {
 
         if (!perguntasMateria) continue;
 
-        const getRandom = (arr, n) =>
-          arr.sort(() => 0.5 - Math.random()).slice(0, n);
+        const getRandom = (arr, n) => arr.sort(() => 0.5 - Math.random()).slice(0, n);
         todasPerguntas.push(...getRandom(perguntasMateria, limite));
       }
 
       todasPerguntas = todasPerguntas.sort(() => 0.5 - Math.random());
 
       if (todasPerguntas.length < quantidadeExercicios) {
-        alert(`Apenas foram encontradas ${todasPerguntas.length} perguntas, mas pediste ${quantidadeExercicios}. O exame continuará com as disponíveis.`);
+        toast.warn(
+          `Apenas foram encontradas ${todasPerguntas.length} perguntas, mas pediste ${quantidadeExercicios}. O exame continuará com as disponíveis.`
+        );
       }
 
       setPerguntas(todasPerguntas);
@@ -110,19 +114,15 @@ const TestePage = () => {
     setPontuacao(pontuacaoCalculada);
     setSubmetido(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    await supabase.from("testes").insert([
-      {
-        idutilizador: user.id,
-        iddisciplina: disciplina,
-        pontuacao: pontuacaoCalculada,
-        data_criacao: new Date().toISOString(),
-      },
-    ]);
+    await supabase.from("testes").insert([{
+      idutilizador: user.id,
+      iddisciplina: disciplina,
+      pontuacao: pontuacaoCalculada,
+      data_criacao: new Date().toISOString(),
+    }]);
 
     const { data: existente } = await supabase
       .from("rank")
@@ -147,6 +147,7 @@ const TestePage = () => {
 
   return (
     <Container className="py-4">
+      <ToastContainer position="top-center" autoClose={4000} />
       <h3 className="text-primary fw-bold mb-3">Modo Exame</h3>
 
       {!submetido && (
@@ -232,10 +233,7 @@ const TestePage = () => {
             const selecionada = respostas[p.idpergunta];
 
             return (
-              <Card
-                key={p.idpergunta}
-                className="p-3 mb-4 border-0"
-              >
+              <Card key={p.idpergunta} className="p-3 mb-4 border-0">
                 <Card.Body>
                   <h5>
                     Pergunta {i + 1} <Badge bg="secondary">EM</Badge>

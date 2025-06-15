@@ -2,30 +2,29 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import supabase from '../helper/supabaseconfig';
 import 'bootstrap/dist/css/bootstrap.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [message, setMessage] = useState("");
     const [showMessage, setShowMessage] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setMessage("");
 
-        // Tentar autenticar no Supabase
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password
         });
 
         if (error) {
-            setMessage("Erro: " + error.message);
+            toast.error("Erro: " + error.message);
             return;
         }
 
-        // Se o login for bem-sucedido, redireciona para a página inicial
+        toast.success("Login efetuado com sucesso!");
         navigate("/");
     };
 
@@ -48,13 +47,11 @@ function LoginPage() {
                             A tua plataforma que transforma o teu estudo numa experiência mais eficaz e divertida!
                         </p>
                     </div>
+
                     {/* Lado Direito - Formulário de Login */}
                     <div className="col-md-6 d-flex justify-content-center">
                         <div className="p-4 bg-white shadow-lg rounded" style={{ maxWidth: '400px', width: '100%' }}>
                             <h2 className="text-center mb-4" style={{ color: '#0056b3' }}>Login</h2>
-
-                            {/* Mensagem de erro */}
-                            {message && <div className="alert alert-danger">{message}</div>}
 
                             <form onSubmit={handleSubmit}>
                                 <div className="mb-3">
@@ -100,6 +97,7 @@ function LoginPage() {
                     </div>
                 </div>
             </div>
+            <ToastContainer position="top-right" autoClose={3000} />
         </div>
     );
 }

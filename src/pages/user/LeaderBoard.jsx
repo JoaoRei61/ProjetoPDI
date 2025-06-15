@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Badge, Spinner } from "react-bootstrap";
+import { Table, Spinner } from "react-bootstrap";
 import supabase from "../../helper/supabaseconfig";
 import "./LeaderBoard.css";
 
@@ -64,11 +64,12 @@ const Leaderboard = () => {
                 </div>
                 <div className="profile-img my-2">
                   <img
-                    src={aluno.utilizadores?.foto || "https://via.placeholder.com/80"}
+                    src={aluno.utilizadores?.foto || "/imagens/logobranco.png"}
                     alt="foto perfil"
                     className="rounded-circle"
                     width={80}
                     height={80}
+                    style={{ objectFit: "cover" }}
                   />
                 </div>
                 <strong>{aluno.utilizadores?.nome} {aluno.utilizadores?.apelido}</strong>
@@ -81,7 +82,7 @@ const Leaderboard = () => {
           <Table hover responsive className="text-center align-middle">
             <thead className="table-light">
               <tr>
-                <th>#</th>
+                <th>Rank</th>
                 <th>Nome</th>
                 <th>Pontos</th>
               </tr>
@@ -90,9 +91,19 @@ const Leaderboard = () => {
               {ranking.map((aluno, i) => (
                 <tr key={i} className={aluno.idutilizador === userId ? "table-primary fw-bold" : ""}>
                   <td>
-                    <Badge bg={i === 0 ? "warning" : i === 1 ? "secondary" : i === 2 ? "danger" : "secondary"}>
+                    <span
+                      style={{
+                        backgroundColor: i < 3 ? medalColors[i] : "#0d6efd",
+                        color: "#fff",
+                        padding: "0.35em 0.75em",
+                        borderRadius: "12px",
+                        fontWeight: "bold",
+                        display: "inline-block",
+                        minWidth: "28px"
+                      }}
+                    >
                       {i + 1}
-                    </Badge>
+                    </span>
                   </td>
                   <td>{aluno.utilizadores?.nome} {aluno.utilizadores?.apelido}</td>
                   <td>{Math.round(aluno.pontos)} pts</td>

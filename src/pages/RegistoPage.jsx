@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
 import supabase from '../helper/supabaseconfig';
 import 'bootstrap/dist/css/bootstrap.css';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function RegistoPage() {
   const [nome, setNome] = useState("");
@@ -12,15 +14,12 @@ function RegistoPage() {
   const [password, setPassword] = useState("");
   const [selectedCurso, setSelectedCurso] = useState("");
   const [aceitouTermos, setAceitouTermos] = useState(false);
-  const [message, setMessage] = useState("");
   const [listaCursos, setListaCursos] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCursos = async () => {
-      const { data, error } = await supabase
-        .from("curso")
-        .select();
+      const { data, error } = await supabase.from("curso").select();
       if (!error) setListaCursos(data || []);
     };
     fetchCursos();
@@ -28,10 +27,9 @@ function RegistoPage() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setMessage("");
 
     if (!aceitouTermos) {
-      setMessage("Tens de aceitar os termos e condições para criar uma conta.");
+      toast.warn("Tens de aceitar os termos e condições para criar uma conta.");
       return;
     }
 
@@ -41,7 +39,7 @@ function RegistoPage() {
     });
 
     if (error || !data?.user) {
-      setMessage(error?.message || "Erro ao criar a conta.");
+      toast.error(error?.message || "Erro ao criar a conta.");
       return;
     }
 
@@ -57,11 +55,11 @@ function RegistoPage() {
     }]);
 
     if (dbError) {
-      setMessage(dbError.message);
+      toast.error(dbError.message);
       return;
     }
 
-    setMessage("Conta criada com sucesso!");
+    toast.success("Conta criada com sucesso!");
     setTimeout(() => navigate("/login"), 2000);
   };
 
@@ -89,7 +87,7 @@ function RegistoPage() {
         <div className="d-flex justify-content-center" style={{ flex: 1.5 }}>
           <div className="p-4 bg-white shadow-lg rounded w-100" style={{ maxWidth: '650px' }}>
             <h2 className="text-center mb-4" style={{ color: '#0056b3' }}>Criar Conta</h2>
-            {message && <span className="alert alert-danger d-block">{message}</span>}
+
             <form onSubmit={handleSubmit}>
               <div className="row">
                 <div className="col-md-6 mb-3">
@@ -120,10 +118,15 @@ function RegistoPage() {
                 <label className="form-label">Telemóvel (opcional)</label>
                 <input
                   type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="form-control"
                   placeholder="Nº de Telemóvel"
                   value={telemovel}
-                  onChange={(e) => setTelemovel(e.target.value)}
+                  onChange={(e) => {
+                    const apenasNumeros = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    setTelemovel(apenasNumeros);
+                  }}
                 />
               </div>
 
@@ -138,6 +141,7 @@ function RegistoPage() {
                   required
                 />
               </div>
+
               <div className="mb-3">
                 <label className="form-label">Email</label>
                 <input
@@ -149,6 +153,7 @@ function RegistoPage() {
                   required
                 />
               </div>
+
               <div className="mb-3">
                 <label className="form-label">Senha</label>
                 <input
@@ -160,6 +165,7 @@ function RegistoPage() {
                   required
                 />
               </div>
+
               <div className="mb-3">
                 <label className="form-label">Curso</label>
                 <select
@@ -200,8 +206,9 @@ function RegistoPage() {
             </div>
           </div>
         </div>
-
       </div>
+
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }

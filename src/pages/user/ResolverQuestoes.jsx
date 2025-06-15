@@ -21,7 +21,8 @@ const ResolverQuestoes = () => {
       let query = supabase
         .from("perguntas")
         .select("*, alternativas(idalternativa, texto, correta)")
-        .eq("idmateria", idmateria);
+        .eq("idmateria", idmateria)
+        .eq("visivel", true); 
 
       if (tipo === "erradas") {
         const { data: erradas } = await supabase
@@ -48,10 +49,8 @@ const ResolverQuestoes = () => {
         const ids = resolvidas?.map(r => r.idpergunta) || [];
 
         if (ids.length > 0) {
-          // Corrigido: usar string formatada com parêntesis
           query = query.filter("idpergunta", "not.in", `(${ids.join(",")})`);
         }
-        // Caso contrário, manter como está — devolve todas
       }
 
       const { data, error } = await query;

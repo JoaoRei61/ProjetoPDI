@@ -32,7 +32,8 @@ const QuestoesPage = () => {
 
       const { data: perguntasData } = await supabase
         .from("perguntas")
-        .select("idmateria");
+        .select("idmateria")
+        .eq("visivel", true); 
 
       const { data: resolucoesData } = await supabase
         .from("resolucao")

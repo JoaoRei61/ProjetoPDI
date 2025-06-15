@@ -3,6 +3,8 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import supabase from '../../helper/supabaseconfig';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AdicionarCursos = () => {
     const [cursos, setCursos] = useState([]);
@@ -32,9 +34,10 @@ const AdicionarCursos = () => {
 
         if (!error) {
             setCursos([...cursos, ...data]);
+            toast.success("Curso adicionado com sucesso!");
             resetForm();
         } else {
-            console.error('Erro ao adicionar curso:', error.message);
+            toast.error("Erro ao adicionar curso.");
         }
     };
 
@@ -91,6 +94,8 @@ const AdicionarCursos = () => {
                     </table>
                 )}
             </div>
+
+            <ToastContainer position="top-right" autoClose={3000} />
         </div>
     );
 };

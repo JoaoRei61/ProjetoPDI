@@ -1,4 +1,3 @@
-// Inicio.jsx
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card } from "react-bootstrap";
 import { AiOutlineLeft, AiOutlineRight, AiFillFileText } from "react-icons/ai";
@@ -93,15 +92,15 @@ const Inicio = () => {
   };
 
   const renderDisciplinas = (disciplinas, currentIndex, setIndex) => (
-    <Row className="align-items-center">
+    <Row className="align-items-center justify-content-center">
       <Col xs="auto" className="text-center">
         <AiOutlineLeft size={32} className="text-danger cursor-pointer" onClick={() => handlePrev(setIndex, currentIndex, disciplinas)} />
       </Col>
       <Col>
         <Row className="justify-content-center">
           {disciplinas.slice(currentIndex, currentIndex + 3).map((disciplina, index) => (
-            <Col key={index} md={4} className="mb-3 fade-in">
-              <Card className="shadow-sm border border-dark rounded-3 cursor-pointer" onClick={() => navigate(`/user/disciplina/${encodeURIComponent(disciplina.titulo)}`, { state: { iddisciplina: disciplina.id } })}>
+            <Col key={index} xs={12} sm={6} md={4} className="mb-3 fade-in d-flex justify-content-center">
+              <Card className="shadow-sm border border-dark rounded-3 cursor-pointer w-100" onClick={() => navigate(`/user/disciplina/${encodeURIComponent(disciplina.titulo)}`, { state: { iddisciplina: disciplina.id } })}>
                 <Card.Body>
                   <Card.Title className="text-center fw-bold text-primary">{disciplina.titulo}</Card.Title>
                   <Card.Text className="text-center text-muted">Docente: {disciplina.docente}</Card.Text>
@@ -152,7 +151,7 @@ const Inicio = () => {
         <h2 className="text-left mt-5 mb-4 fw-bold" style={{ color: "#0056b3" }}>Ações Rápidas</h2>
         <Row className="text-center">
           <Col md={4} className="mb-3">
-            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#f0e2a5,#f0e2a5)" }} onClick={() => navigate("/user/questoes")}>  
+            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#f0e2a5,#f0e2a5)" }} onClick={() => navigate("/user/questoes")}>
               <Card.Body className="d-flex flex-column align-items-center justify-content-center">
                 <BsQuestionCircle className="icone" />
                 <span>Questões</span>
@@ -160,7 +159,7 @@ const Inicio = () => {
             </Card>
           </Col>
           <Col md={4} className="mb-3">
-            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#b6f3ee, #b6f3ee)" }} onClick={() => navigate("/user/modo-exame")}>  
+            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#b6f3ee, #b6f3ee)" }} onClick={() => navigate("/user/modo-exame")}>
               <Card.Body className="d-flex flex-column align-items-center justify-content-center">
                 <MdEdit className="icone" />
                 <span>Modo Exame</span>
@@ -168,7 +167,7 @@ const Inicio = () => {
             </Card>
           </Col>
           <Col md={4} className="mb-3">
-            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#95cab1, #95cab1)" }} onClick={() => navigate("/user/resumos")}>  
+            <Card className="card-acao cursor-pointer" style={{ background: "linear-gradient(135deg,#95cab1, #95cab1)" }} onClick={() => navigate("/user/resumos")}>
               <Card.Body className="d-flex flex-column align-items-center justify-content-center">
                 <AiFillFileText className="icone" />
                 <span>Resumos</span>

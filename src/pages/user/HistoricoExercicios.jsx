@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import supabase from "../../helper/supabaseconfig";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const HistoricoExercicios = () => {
   const [exercicios, setExercicios] = useState([]);
@@ -35,7 +37,7 @@ const HistoricoExercicios = () => {
       .from("docente_disciplina")
       .select("iddisciplina");
 
-    const ids = disciplinasDoDocente.map(d => d.iddisciplina);
+    const ids = disciplinasDoDocente.map((d) => d.iddisciplina);
 
     const { data: disciplinasValidas } = await supabase
       .from("disciplinas")
@@ -70,6 +72,7 @@ const HistoricoExercicios = () => {
         )
       `)
       .eq("idutilizador", userId)
+      .eq("visivel", true)
       .order("data_criacao", { ascending: false });
 
     if (disciplinaSelecionada) {
@@ -106,13 +109,14 @@ const HistoricoExercicios = () => {
 
     const { error } = await supabase
       .from("perguntas")
-      .delete()
+      .update({ visivel: false })
       .eq("idpergunta", id);
 
     if (!error) {
       setExercicios((prev) => prev.filter((ex) => ex.idpergunta !== id));
+      toast.success("Exercício eliminado com sucesso.");
     } else {
-      alert("Erro ao eliminar exercício.");
+      toast.error("Erro ao eliminar exercício.");
     }
   };
 
@@ -160,9 +164,11 @@ const HistoricoExercicios = () => {
 
   return (
     <div className="container my-4">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar />
       <h3>Histórico de Exercícios</h3>
 
       <div className="row mb-4">
+        {/* Filtros: Disciplina, Matéria, Tipo */}
         <div className="col-md-4">
           <label>Disciplina</label>
           <select
