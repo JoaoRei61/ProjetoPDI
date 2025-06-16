@@ -18,5 +18,5 @@ Para aceder a conta de docente pode usar essa:
 Para a conta de aluno é so registar-se.
 Caso queira fazer logo o login tem essa conta:
 - Email: aluno3@gmail.com
-- Palavra-Passe: aluno312345
+- Palavra-Passe: aluno12345
  
