@@ -346,22 +346,32 @@ const Perfil = () => {
                 </Card>
 
                 <div className="row">
-                  <div className="col-md-6 mb-4">
-                    <Card className="p-3 shadow-sm h-100" style={{ minHeight: '300px', maxHeight: '350px' }}>
+                  <div className="col-md-6 mb-4 d-flex justify-content-center">
+                    <Card className="p-3 shadow-sm w-100" style={{ minHeight: '300px', maxHeight: '350px' }}>
                       <h6 className="text-center text-primary">Radar - Aptidão por Matéria</h6>
-                      <Radar data={{
-                        labels: materiasData,
-                        datasets: [{
-                          label: 'Aptidão (%)',
-                          data: medias,
-                          fill: true,
-                          borderColor: '#007bff',
-                          backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                          pointBackgroundColor: '#007bff'
-                        }]
-                      }} />
+                      <div className="d-flex justify-content-center">
+                        <Radar
+                          data={{
+                            labels: materiasData,
+                            datasets: [{
+                              label: 'Aptidão (%)',
+                              data: medias,
+                              fill: true,
+                              borderColor: '#007bff',
+                              backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                              pointBackgroundColor: '#007bff'
+                            }]
+                          }}
+                          options={{
+                            maintainAspectRatio: false,
+                            responsive: true,
+                          }}
+                          style={{ maxWidth: "100%", height: "300px" }}
+                        />
+                      </div>
                     </Card>
                   </div>
+                          
                   <div className="col-md-6 mb-4">
                     <Card className="p-3 shadow-sm h-100" style={{ minHeight: '300px', maxHeight: '350px' }}>
                       <h6 className="text-center text-primary">Gráfico de Barras - Percentagens</h6>

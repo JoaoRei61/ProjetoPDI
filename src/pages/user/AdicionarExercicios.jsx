@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Container, Form, Button, Row, Col } from "react-bootstrap";
 import { uploadImagemCloudinary } from "../../helper/uploadcloudinary";
 import supabase from "../../helper/supabaseconfig";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const AdicionarExercicio = () => {
   const [disciplinas, setDisciplinas] = useState([]);
@@ -73,7 +75,7 @@ const AdicionarExercicio = () => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData?.user?.id;
-      if (!userId) return alert("Utilizador não autenticado.");
+      if (!userId) return toast.error("Utilizador não autenticado.");
 
       let idMateria;
       const { data: materiaExistente } = await supabase
@@ -125,7 +127,11 @@ const AdicionarExercicio = () => {
         await supabase.from("alternativas").insert(alternativas);
       }
 
-      alert("Exercício adicionado com sucesso!");
+      toast.success("Exercício adicionado com sucesso!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+
       setPerguntaTexto("");
       setExplicacaoTexto("");
       setFicheiroPergunta(null);
@@ -138,12 +144,16 @@ const AdicionarExercicio = () => {
 
     } catch (err) {
       console.error("Erro ao adicionar exercício:", err);
-      alert("Erro ao adicionar exercício.");
+      toast.error("Erro ao adicionar exercício.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
   };
 
   return (
     <Container className="py-5">
+      <ToastContainer />
       <h3 className="mb-4 text-primary fw-bold">Adicionar Novo Exercício</h3>
       <Form onSubmit={handleSubmit}>
         <Row className="mb-3">
@@ -169,21 +179,21 @@ const AdicionarExercicio = () => {
           </Col>
           <Col md={6}>
             <Form.Group>
-                <Form.Label>Matéria</Form.Label>
-                <Form.Control
-                    type="text"
-                    list="materia-options"
-                    value={materia}
-                    placeholder="Ex: Funções"
-                    onChange={(e) => setMateria(e.target.value)}
-                    required
-                />
-                <datalist id="materia-options">
-                    {materias.map((m) => (
-                    <option key={m.idmateria} value={m.nome} />
-                    ))}
-                </datalist>
-            </Form.Group>   
+              <Form.Label>Matéria</Form.Label>
+              <Form.Control
+                type="text"
+                list="materia-options"
+                value={materia}
+                placeholder="Ex: Funções"
+                onChange={(e) => setMateria(e.target.value)}
+                required
+              />
+              <datalist id="materia-options">
+                {materias.map((m) => (
+                  <option key={m.idmateria} value={m.nome} />
+                ))}
+              </datalist>
+            </Form.Group>
           </Col>
         </Row>
 
