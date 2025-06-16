@@ -39,8 +39,12 @@ const Inicio = () => {
 
       if (dbError || !userInfo) return;
 
-      setNomeCompleto(`${userInfo.nome} ${userInfo.apelido || ""}`);
+      if (userInfo.tipo_conta === "docente") {
+        navigate("/user/adicionar-exercicios");
+        return;
+      }
 
+      setNomeCompleto(`${userInfo.nome} ${userInfo.apelido || ""}`);
       const agrupado = {};
 
       if (userInfo.tipo_conta === "aluno") {
@@ -49,7 +53,7 @@ const Inicio = () => {
           .select(`ano, semestre, disciplinas ( iddisciplina, nome, docente_disciplina ( utilizadores ( username ) ) )`)
           .eq("idcurso", userInfo.idcurso);
 
-        resultados.forEach(({ ano, semestre, disciplinas }) => {
+        resultados?.forEach(({ ano, semestre, disciplinas }) => {
           const anoTexto = `${ano}º ano`;
           const semestreTexto = `semestre${semestre}`;
           if (!agrupado[anoTexto]) agrupado[anoTexto] = { semestre1: [], semestre2: [] };
@@ -71,7 +75,7 @@ const Inicio = () => {
     };
 
     fetchDados();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     setCurrentIndex1(0);

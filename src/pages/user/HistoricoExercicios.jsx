@@ -35,7 +35,8 @@ const HistoricoExercicios = () => {
 
     const { data: disciplinasDoDocente } = await supabase
       .from("docente_disciplina")
-      .select("iddisciplina");
+      .select("iddisciplina")
+      .eq("iddocente", id);
 
     const ids = disciplinasDoDocente.map((d) => d.iddisciplina);
 
@@ -58,41 +59,47 @@ const HistoricoExercicios = () => {
   const fetchExercicios = async () => {
     setLoading(true);
 
-    let query = supabase
+    const { data, error } = await supabase
       .from("perguntas")
       .select(`
         *,
         materia (
           idmateria,
           nome,
-          disciplinas (
-            iddisciplina,
-            nome
-          )
+          iddisciplina
         )
       `)
       .eq("idutilizador", userId)
       .eq("visivel", true)
       .order("data_criacao", { ascending: false });
 
+    if (error) {
+      toast.error("Erro ao carregar exercícios.");
+      setExercicios([]);
+      setLoading(false);
+      return;
+    }
+
+    let resultado = data || [];
+
     if (disciplinaSelecionada) {
-      query = query.eq("materia.disciplinas.iddisciplina", disciplinaSelecionada);
+      resultado = resultado.filter(
+        (ex) => ex.materia?.iddisciplina === parseInt(disciplinaSelecionada)
+      );
     }
 
     if (materiaSelecionada) {
-      query = query.eq("idmateria", materiaSelecionada);
+      resultado = resultado.filter(
+        (ex) => ex.idmateria === parseInt(materiaSelecionada)
+      );
     }
 
     if (tipoSelecionado !== "todos") {
-      query = query.eq("tipo_pergunta", tipoSelecionado === "multipla" ? "EM" : "Desenvolvimento");
+      const tipo = tipoSelecionado === "multipla" ? "EM" : "Desenvolvimento";
+      resultado = resultado.filter((ex) => ex.tipo_pergunta === tipo);
     }
 
-    const { data, error } = await query;
-
-    if (!error && data) {
-      setExercicios(data);
-    }
-
+    setExercicios(resultado);
     setLoading(false);
   };
 
@@ -125,7 +132,9 @@ const HistoricoExercicios = () => {
       <div className="card-body">
         <div className="d-flex justify-content-between align-items-start">
           <div>
-            <h5 className="card-title">{ex.materia?.disciplinas?.nome} - {ex.materia?.nome}</h5>
+            <h5 className="card-title">
+              {disciplinas.find(d => d.iddisciplina === ex.materia?.iddisciplina)?.nome || "Disciplina"} - {ex.materia?.nome}
+            </h5>
             <p><strong>Tipo:</strong> {ex.tipo_pergunta}</p>
             <p><strong>Data:</strong> {new Date(ex.data_criacao).toLocaleDateString()}</p>
           </div>
@@ -168,14 +177,13 @@ const HistoricoExercicios = () => {
       <h3>Histórico de Exercícios</h3>
 
       <div className="row mb-4">
-        {/* Filtros: Disciplina, Matéria, Tipo */}
         <div className="col-md-4">
           <label>Disciplina</label>
           <select
             className="form-select"
             value={disciplinaSelecionada}
             onChange={(e) => {
-              setDisciplinaSelecionada(e.target.value);
+              setDisciplinaSelecionada(e.target.value || "");
               setMateriaSelecionada("");
             }}
           >
@@ -193,7 +201,7 @@ const HistoricoExercicios = () => {
           <select
             className="form-select"
             value={materiaSelecionada}
-            onChange={(e) => setMateriaSelecionada(e.target.value)}
+            onChange={(e) => setMateriaSelecionada(e.target.value || "")}
             disabled={!disciplinaSelecionada}
           >
             <option value="">Todas</option>
@@ -222,7 +230,7 @@ const HistoricoExercicios = () => {
       {loading ? (
         <p>A carregar exercícios...</p>
       ) : exercicios.length === 0 ? (
-        <p className="text-muted">Nenhum exercício encontrado com os filtros atuais.</p>
+        <p className="text-muted">Sem exercícios adicionados para os filtros atuais.</p>
       ) : (
         exercicios.map(renderCard)
       )}
